@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Timeline from './Timeline';
+import { timelineStyles as styles } from './styles/TimelineStyles';
 
 const TimelineContainer: React.FC = () => {
   const [bpm, setBpm] = useState(120);
@@ -33,71 +34,70 @@ const TimelineContainer: React.FC = () => {
   };
 
   return (
-    <div className="timeline-container" style={{ padding: '20px' }}>
-      <div style={{ 
-        marginBottom: '20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '20px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <label htmlFor="bpm-input" style={{ marginRight: '10px' }}>
-            Beats Per Minute:
-          </label>
-          <input
-            id="bpm-input"
-            type="number"
-            min="1"
-            value={bpm}
-            onChange={handleBpmChange}
-            style={{
-              padding: '5px',
-              width: '80px',
-              marginRight: '20px'
-            }}
-          />
-          <label htmlFor="fps-input" style={{ marginRight: '10px' }}>
-            FPS:
-          </label>
-          <input
-            id="fps-input"
-            type="number"
-            min="1"
-            value={fps}
-            onChange={(e) => {
-              const value = parseInt(e.target.value, 10);
-              if (!isNaN(value) && value > 0) {
-                setFps(value);
-              }
-            }}
-            style={{
-              padding: '5px',
-              width: '80px',
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <label htmlFor="duration-input" style={{ marginRight: '10px' }}>
-            Duration (seconds):
-          </label>
-          <input
-            id="duration-input"
-            type="number"
-            min="1"
-            value={duration}
-            onChange={handleDurationChange}
-            style={{
-              padding: '5px',
-              width: '80px',
-            }}
-          />
+    <div className={styles.container}>
+      <div className={styles.glowEffect}>
+        <div className={styles.contentContainer}>
+          <h1 className={styles.heading}>Music Animator Timeline</h1>
+          
+          <div className={styles.controlsContainer}>
+            <div className={styles.controlGroup}>
+              <label htmlFor="bpm-input" className={styles.label}>
+                BPM:
+              </label>
+              <input
+                id="bpm-input"
+                type="number"
+                min="1"
+                value={bpm}
+                onChange={handleBpmChange}
+                className={styles.input}
+              />
+            </div>
+
+            <div className={styles.controlGroup}>
+              <label htmlFor="fps-input" className={styles.label}>
+                FPS:
+              </label>
+              <input
+                id="fps-input"
+                type="number"
+                min="1"
+                value={fps}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (!isNaN(value) && value > 0) {
+                    setFps(value);
+                  }
+                }}
+                className={styles.input}
+              />
+            </div>
+
+            <div className={styles.controlGroup}>
+              <label htmlFor="duration-input" className={styles.label}>
+                Duration:
+              </label>
+              <input
+                id="duration-input"
+                type="number"
+                min="1"
+                value={duration}
+                onChange={handleDurationChange}
+                className={styles.input}
+              />
+              <span className={styles.label}>sec</span>
+            </div>
+          </div>
+
+          <div className={styles.timelineWrapper}>
+            <Timeline
+              bpm={bpm}
+              totalBeats={totalBeats}
+              onBeatSelect={handleBeatSelect}
+            />
+          </div>
         </div>
       </div>
-      <Timeline
-        bpm={bpm}
-        totalBeats={totalBeats}
-        onBeatSelect={handleBeatSelect}
-      />
     </div>
   );
 };

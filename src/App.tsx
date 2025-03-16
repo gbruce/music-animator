@@ -1,18 +1,81 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
+import { Signup } from './components/Signup';
+import { Profile } from './components/Profile';
+import { ForgotPassword } from './components/ForgotPassword';
 import TimelineContainer from './components/TimelineContainer';
-import './App.css';
 
-function App() {
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return user ? <>{children}</> : <Navigate to="/login" />;
+};
+
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return !user ? <>{children}</> : <Navigate to="/" />;
+};
+
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Beat Timeline</h1>
-      </header>
-      <main>
-        <TimelineContainer />
-      </main>
-    </div>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <TimelineContainer />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <Signup />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <ForgotPassword />
+              </PublicRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
-}
+};
 
 export default App; 
