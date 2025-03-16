@@ -8,8 +8,16 @@ export const timelineStyles = {
     after:bg-blue-600 after:rounded-full after:blur-3xl after:opacity-20 after:-z-10
     after:animate-pulse after:animation-delay-2000`,
   
-  contentContainer: `w-full backdrop-blur-xl bg-white/10 p-8 rounded-2xl 
-    shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] border border-white/20`,
+  contentContainer: `w-full`,
+  
+  userInfoContainer: `absolute top-4 right-4 flex items-center gap-4`,
+  
+  username: `text-gray-300 font-medium`,
+  
+  logoutButton: `px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 
+    text-red-400 text-sm font-medium hover:bg-red-500/30 
+    focus:outline-none focus:ring-2 focus:ring-red-500/50 
+    transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]`,
   
   heading: `text-4xl font-bold text-transparent bg-clip-text 
     bg-gradient-to-r from-blue-400 to-purple-400 text-center mb-6`,

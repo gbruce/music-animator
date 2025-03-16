@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { authStyles as styles } from './styles/AuthStyles';
 
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -14,7 +14,7 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to login');
     }
@@ -41,18 +41,18 @@ export const Login: React.FC = () => {
 
             <div className={styles.inputContainer}>
               <div>
-                <label htmlFor="email" className={styles.label}>
-                  Email address
+                <label htmlFor="username" className={styles.label}>
+                  Username
                 </label>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
+                  id="username"
+                  name="username"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className={styles.input}
-                  placeholder="Enter your email"
+                  placeholder="Enter your username"
                 />
               </div>
 

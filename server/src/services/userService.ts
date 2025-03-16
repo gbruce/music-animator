@@ -13,7 +13,7 @@ export interface UserInput {
 }
 
 export interface LoginInput {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -49,16 +49,16 @@ export class UserService {
 
   async login(data: LoginInput) {
     const user = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { username: data.username },
     });
 
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid username or password');
     }
 
     const validPassword = await bcrypt.compare(data.password, user.password);
     if (!validPassword) {
-      throw new Error('Invalid email or password');
+      throw new Error('Invalid username or password');
     }
 
     const { password, resetToken, resetTokenExpiry, ...userWithoutPassword } = user;

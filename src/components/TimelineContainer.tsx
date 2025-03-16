@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Timeline from './Timeline';
 import { timelineStyles as styles } from './styles/TimelineStyles';
+import { useAuth } from '../contexts/AuthContext';
 
 const TimelineContainer: React.FC = () => {
+  const { user, logout } = useAuth();
   const [bpm, setBpm] = useState(120);
   const [duration, setDuration] = useState(60); // Duration in seconds
   const [totalBeats, setTotalBeats] = useState(0);
@@ -37,6 +39,18 @@ const TimelineContainer: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.glowEffect}>
         <div className={styles.contentContainer}>
+          {user && (
+            <div className={styles.userInfoContainer}>
+              <span className={styles.username}>{user.username}</span>
+              <button
+                onClick={logout}
+                className={styles.logoutButton}
+              >
+                Logout
+              </button>
+            </div>
+          )}
+          
           <h1 className={styles.heading}>Music Animator Timeline</h1>
           
           <div className={styles.controlsContainer}>
