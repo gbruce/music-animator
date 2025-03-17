@@ -124,6 +124,8 @@ const TimelineContainer: React.FC = () => {
               </select>
             </div>
 
+            <h1 className={styles.heading}>Music Animator Timeline</h1>
+
             {user && (
               <div className={styles.userInfoContainer}>
                 <span className={styles.username}>{user.username}</span>
@@ -136,8 +138,6 @@ const TimelineContainer: React.FC = () => {
               </div>
             )}
           </div>
-          
-          <h1 className={styles.heading}>Music Animator Timeline</h1>
           
           {showNewProjectForm && (
             <div className={styles.newProjectForm}>
