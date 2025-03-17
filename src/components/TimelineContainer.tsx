@@ -3,6 +3,8 @@ import Timeline from './Timeline';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
+import { useTracks } from '../contexts/TrackContext';
+import { Track } from '../services/api';
 
 const TimelineContainer: React.FC = () => {
   const { user, logout } = useAuth();
@@ -12,8 +14,10 @@ const TimelineContainer: React.FC = () => {
     setCurrentProject, 
     createProject, 
     updateProject,
-    loading 
+    loading: projectsLoading 
   } = useProjects();
+  
+  const { selectedTrack } = useTracks();
   
   const [bpm, setBpm] = useState(120);
   const [duration, setDuration] = useState(60); // Duration in seconds
@@ -93,7 +97,7 @@ const TimelineContainer: React.FC = () => {
     console.log(`Selected beat: ${beat}`);
   };
 
-  if (loading && projects.length === 0) {
+  if (projectsLoading && projects.length === 0) {
     return <div className={styles.loadingContainer}>Loading projects...</div>;
   }
 
@@ -210,6 +214,7 @@ const TimelineContainer: React.FC = () => {
               bpm={bpm}
               totalBeats={totalBeats}
               onBeatSelect={handleBeatSelect}
+              selectedTrack={selectedTrack}
             />
           </div>
         </div>

@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Track as ApiTrack, trackApi } from '../services/api';
+import { useProjects } from '../contexts/ProjectContext';
+import { useTracks } from '../contexts/TrackContext';
 
 interface Track {
   id: string;
@@ -6,20 +9,22 @@ interface Track {
   boxStartBeat: number;
   startFrame: number;
   endFrame: number;
+  durationBeats: number;
 }
 
 interface TimelineProps {
   bpm: number;
   totalBeats: number;
   onBeatSelect?: (beat: number) => void;
+  selectedTrack?: ApiTrack | null;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) => {
+const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, selectedTrack }) => {
+  const { currentProject, fetchProjects } = useProjects();
+  const { createTrack, deleteTrack, updateTrack } = useTracks();
   const [currentBeat, setCurrentBeat] = useState(0);
   const [beatWidth, setBeatWidth] = useState(30); // Width of each beat marker in pixels
-  const [tracks, setTracks] = useState<Track[]>([
-    { id: '1', name: 'Track 1', boxStartBeat: 0, startFrame: 0, endFrame: 100 }
-  ]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
   const [draggingTrackId, setDraggingTrackId] = useState<string | null>(null);
   const [dragStartX, setDragStartX] = useState(0);
@@ -36,6 +41,69 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
   const DRAG_THRESHOLD = 3; // pixels of movement before considered a drag
   const [fps, setFps] = useState(24);
   const [duration, setDuration] = useState(5);
+
+  // Load all tracks when the current project changes
+  useEffect(() => {
+    if (currentProject && currentProject.tracks) {
+      // Fetch the latest project data to ensure we have the most recent track positions
+      const loadLatestTracks = async () => {
+        try {
+          // Convert API tracks to timeline track format
+          const framesPerBeat = fps * (60 / bpm);
+          const timelineTracks = currentProject.tracks.map(apiTrack => {
+            return {
+              id: apiTrack.id,
+              name: apiTrack.name,
+              boxStartBeat: apiTrack.startBeat,
+              durationBeats: apiTrack.durationBeats,
+              startFrame: Math.round(apiTrack.startBeat * framesPerBeat),
+              endFrame: Math.round((apiTrack.startBeat + apiTrack.durationBeats) * framesPerBeat - 1)
+            };
+          });
+          
+          setTracks(timelineTracks);
+          
+          // Clear selection when loading a new project
+          setSelectedTrackId(null);
+        } catch (error) {
+          console.error("Failed to load tracks:", error);
+        }
+      };
+      
+      loadLatestTracks();
+    } else {
+      // Clear tracks if no project is selected
+      setTracks([]);
+    }
+  }, [currentProject, bpm, fps]);
+
+  // Update the timeline when the selected API track changes
+  useEffect(() => {
+    if (selectedTrack) {
+      // Find if we already have this track in our local state
+      const existingTrack = tracks.find(t => t.id === selectedTrack.id);
+      
+      if (!existingTrack) {
+        // Convert API track to timeline track format
+        const framesPerBeat = fps * (60 / bpm);
+        const newTrack: Track = {
+          id: selectedTrack.id,
+          name: selectedTrack.name,
+          boxStartBeat: selectedTrack.startBeat,
+          durationBeats: selectedTrack.durationBeats,
+          startFrame: Math.round(selectedTrack.startBeat * framesPerBeat),
+          endFrame: Math.round((selectedTrack.startBeat + selectedTrack.durationBeats) * framesPerBeat - 1)
+        };
+        
+        setTracks(prevTracks => [...prevTracks, newTrack]);
+      }
+      
+      // Select the track
+      setSelectedTrackId(selectedTrack.id);
+      
+      // Scroll to the track's position - removed to prevent scrolling when selecting tracks
+    }
+  }, [selectedTrack, bpm, fps, beatWidth]);
 
   const handleScroll = () => {
     if (timelineRef.current) {
@@ -87,30 +155,86 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
     ));
   };
 
-  const handleNameBlur = () => {
+  const handleNameBlur = async () => {
+    if (editingTrackId) {
+      const track = tracks.find(t => t.id === editingTrackId);
+      if (track) {
+        try {
+          // Update the track name in the database
+          await updateTrack(editingTrackId, { name: track.name });
+          
+          // Refresh projects to ensure we have the latest data
+          await fetchProjects();
+        } catch (error) {
+          console.error("Failed to update track name:", error);
+        }
+      }
+    }
     setEditingTrackId(null);
   };
 
   const handleNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      setEditingTrackId(null);
+      handleNameBlur();
     }
   };
 
-  const addTrack = () => {
-    const framesPerBeat = fps * (60 / bpm);
-    const newTrack: Track = {
-      id: String(tracks.length + 1),
-      name: `Track ${tracks.length + 1}`,
-      boxStartBeat: 0,
-      startFrame: 0,
-      endFrame: Math.round(duration * framesPerBeat - 1)
-    };
-    setTracks([...tracks, newTrack]);
+  const addTrack = async () => {
+    if (!currentProject) {
+      console.error("No project selected");
+      return;
+    }
+    
+    try {
+      // Create a new track in the database
+      const trackName = `Track ${tracks.length + 1}`;
+      const startBeat = 0;
+      const durationBeats = 5;
+      
+      const newApiTrack = await createTrack(trackName, startBeat, durationBeats);
+      
+      // Convert to timeline track format
+      const framesPerBeat = fps * (60 / bpm);
+      const newTrack: Track = {
+        id: newApiTrack.id,
+        name: newApiTrack.name,
+        boxStartBeat: newApiTrack.startBeat,
+        durationBeats: newApiTrack.durationBeats,
+        startFrame: Math.round(newApiTrack.startBeat * framesPerBeat),
+        endFrame: Math.round((newApiTrack.startBeat + newApiTrack.durationBeats) * framesPerBeat - 1)
+      };
+      
+      // Add to local state
+      setTracks(prevTracks => [...prevTracks, newTrack]);
+      
+      // Select the new track without scrolling
+      setSelectedTrackId(newTrack.id);
+      
+      // Refresh projects to ensure we have the latest data
+      await fetchProjects();
+    } catch (error) {
+      console.error("Failed to create track:", error);
+    }
   };
 
-  const removeTrack = (trackId: string) => {
-    setTracks(tracks.filter(track => track.id !== trackId));
+  const removeTrack = async (trackId: string) => {
+    try {
+      // Delete the track from the database
+      await deleteTrack(trackId);
+      
+      // Remove from local state
+      setTracks(prevTracks => prevTracks.filter(track => track.id !== trackId));
+      
+      // Clear selection if the deleted track was selected
+      if (selectedTrackId === trackId) {
+        setSelectedTrackId(null);
+      }
+      
+      // Refresh projects to ensure we have the latest data
+      await fetchProjects();
+    } catch (error) {
+      console.error("Failed to delete track:", error);
+    }
   };
 
   const handleFrameChange = (trackId: string, field: 'startFrame' | 'endFrame', value: string) => {
@@ -135,28 +259,42 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
   };
 
   const handleBoxClick = (event: React.MouseEvent, trackId: string) => {
+    // Prevent default browser behavior
+    event.preventDefault();
+    // Stop propagation to prevent timeline click
     event.stopPropagation();
-    // Toggle selection - if clicking the selected box, deselect it
-    setSelectedTrackId(currentId => currentId === trackId ? null : trackId);
+    
+    // Set the selected track ID
+    setSelectedTrackId(trackId);
   };
 
   const handleTimelineClick = (event: React.MouseEvent) => {
-    // No longer deselect when clicking outside boxes
+    // Check if we clicked on a box or its parent
+    const target = event.target as HTMLElement;
+    const boxElement = target.closest('[data-box-id]');
+    
+    // Only deselect if we're not clicking on a box
+    if (!boxElement) {
+      setSelectedTrackId(null);
+    }
   };
 
   const handleBoxMouseDown = (event: React.MouseEvent, trackId: string) => {
     const track = tracks.find(t => t.id === trackId);
     if (track) {
+      // Prevent default browser behavior
       event.preventDefault();
-      event.stopPropagation(); // Prevent timeline drag from triggering
+      // Stop propagation to prevent timeline drag
+      event.stopPropagation();
+      
+      // Always select the box when clicking on it
+      setSelectedTrackId(trackId);
       
       if (event.button === 0) { // Left click
         setDraggingTrackId(trackId);
         setDragStartX(event.clientX);
         setDragStartBeat(track.boxStartBeat);
         setIsDragThresholdExceeded(false);
-        // Auto-select the box when starting a potential drag
-        setSelectedTrackId(trackId);
       }
     }
   };
@@ -177,12 +315,12 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
         const track = tracks.find(t => t.id === draggingTrackId);
         if (track) {
           const beatDelta = Math.round(deltaX / beatWidth);
-          const newBeat = Math.max(0, Math.min(totalBeats - 5, dragStartBeat + beatDelta));
+          const newBeat = Math.max(0, Math.min(totalBeats - track.durationBeats, dragStartBeat + beatDelta));
           
           // Calculate frames using FPS and BPM
           const framesPerBeat = fps * (60 / bpm);
           const newStartFrame = Math.round(newBeat * framesPerBeat);
-          const newEndFrame = Math.round((newBeat + 5) * framesPerBeat - 1);
+          const newEndFrame = Math.round((newBeat + track.durationBeats) * framesPerBeat - 1);
           
           setTracks(prevTracks => 
             prevTracks.map(t =>
@@ -201,14 +339,27 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
     }
   };
 
-  const handleMouseUp = (event: MouseEvent) => {
+  const handleMouseUp = async (event: MouseEvent) => {
     if (draggingTrackId) {
       event.stopPropagation();
       
-      // Remove the selection toggle on click since we're auto-selecting on mousedown
-      // if (!isDragThresholdExceeded) {
-      //   setSelectedTrackId(currentId => currentId === draggingTrackId ? null : draggingTrackId);
-      // }
+      if (isDragThresholdExceeded) {
+        // Save the new position to the database
+        const track = tracks.find(t => t.id === draggingTrackId);
+        if (track) {
+          try {
+            await updateTrack(draggingTrackId, {
+              startBeat: track.boxStartBeat,
+              durationBeats: track.durationBeats
+            });
+            
+            // Refresh the projects data to ensure we have the latest track positions
+            await fetchProjects();
+          } catch (error) {
+            console.error("Failed to update track position:", error);
+          }
+        }
+      }
       
       setDraggingTrackId(null);
       setIsDragThresholdExceeded(false);
@@ -253,11 +404,11 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
         return {
           ...track,
           startFrame: Math.round(track.boxStartBeat * framesPerBeat),
-          endFrame: Math.round((track.boxStartBeat + 5) * framesPerBeat - 1)
+          endFrame: Math.round((track.boxStartBeat + track.durationBeats) * framesPerBeat - 1)
         };
       })
     );
-  }, [fps, bpm]);
+  }, [fps, bpm, selectedTrackId]);
 
   useEffect(() => {
     // Add global mouse event listeners
@@ -300,7 +451,10 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
   }, [beatWidth, totalBeats, tracks]);
 
   return (
-    <div className="timeline-container" style={{ width: '100%', padding: '20px 0' }} onClick={handleTimelineClick}>
+    <div 
+      className="timeline-container" 
+      style={{ width: '100%', padding: '20px 0' }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
         <button
           onClick={addTrack}
@@ -317,6 +471,9 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
         >
           + Add Track
         </button>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          {tracks.length > 0 ? `${tracks.length} track(s)` : 'No tracks'}
+        </div>
       </div>
 
       <div style={{ position: 'relative', width: '100%', display: 'flex' }}>
@@ -453,6 +610,8 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
               msOverflowStyle: 'none',
               scrollbarWidth: 'none',
               cursor: isTimelineDragging ? 'grabbing' : 'grab',
+              position: 'relative',
+              zIndex: 1,
             }}
             onScroll={(e) => {
               handleScroll();
@@ -460,6 +619,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
             }}
             onWheel={handleWheel}
             onMouseDown={handleTimelineMouseDown}
+            onClick={handleTimelineClick}
           >
             <style>
               {`
@@ -478,6 +638,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
                   position: 'relative',
                   marginBottom: '1px',
                 }}
+                onClick={handleTimelineClick}
               >
                 {Array.from({ length: totalBeats }, (_, i) => (
                   <div
@@ -518,16 +679,17 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
                 >
                   {/* Box overlay */}
                   <div
+                    data-box-id={track.id}
                     style={{
                       position: 'absolute',
                       left: `${track.boxStartBeat * beatWidth}px`,
                       top: '2px',
                       bottom: '2px',
-                      width: `${5 * beatWidth - 4}px`,
+                      width: `${track.durationBeats * beatWidth - 4}px`,
                       backgroundColor: selectedTrackId === track.id ? '#2563eb' : '#4a90e2',
                       opacity: selectedTrackId === track.id ? 1 : 0.6,
                       borderRadius: '4px',
-                      zIndex: selectedTrackId === track.id ? 2 : 1,
+                      zIndex: selectedTrackId === track.id ? 10 : 5,
                       margin: '0 2px',
                       cursor: 'move',
                       userSelect: 'none',
@@ -539,8 +701,10 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
                         : 'none',
                       transform: draggingTrackId === track.id ? 'scale(1.02)' : 'scale(1)',
                       transition: 'all 0.1s ease-out',
+                      pointerEvents: 'auto',
                     }}
                     onMouseDown={(e) => handleBoxMouseDown(e, track.id)}
+                    onClick={(e) => handleBoxClick(e, track.id)}
                   />
                   <div
                     className="beat-grid"
@@ -551,6 +715,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
                       borderTop: '1px solid #ccc',
                       position: 'relative',
                     }}
+                    onClick={handleTimelineClick}
                   >
                     {Array.from({ length: totalBeats }, (_, i) => (
                       <div
@@ -593,6 +758,124 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect }) =>
             display: 'flex',
             gap: '16px',
           }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <label style={{
+                fontSize: '13px',
+                color: '#666',
+              }}>
+                Start Beat:
+              </label>
+              <input
+                type="number"
+                value={tracks.find(t => t.id === selectedTrackId)?.boxStartBeat}
+                onChange={async (e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (!isNaN(value) && value >= 0) {
+                    const track = tracks.find(t => t.id === selectedTrackId);
+                    if (!track) return;
+                    
+                    const framesPerBeat = fps * (60 / bpm);
+                    const newStartFrame = Math.round(value * framesPerBeat);
+                    const newEndFrame = Math.round((value + track.durationBeats) * framesPerBeat - 1);
+                    
+                    setTracks(prevTracks => 
+                      prevTracks.map(t =>
+                        t.id === selectedTrackId 
+                          ? { 
+                              ...t, 
+                              boxStartBeat: value,
+                              startFrame: newStartFrame,
+                              endFrame: newEndFrame
+                            }
+                          : t
+                      )
+                    );
+                    
+                    // Update in database
+                    try {
+                      await updateTrack(selectedTrackId, {
+                        startBeat: value,
+                        durationBeats: track.durationBeats
+                      });
+                      
+                      // Refresh projects to ensure we have the latest data
+                      await fetchProjects();
+                    } catch (error) {
+                      console.error("Failed to update track position:", error);
+                    }
+                  }
+                }}
+                style={{
+                  width: '80px',
+                  padding: '4px 8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}>
+              <label style={{
+                fontSize: '13px',
+                color: '#666',
+              }}>
+                Duration (beats):
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={tracks.find(t => t.id === selectedTrackId)?.durationBeats}
+                onChange={async (e) => {
+                  const value = parseInt(e.target.value, 10);
+                  if (!isNaN(value) && value >= 1) {
+                    const track = tracks.find(t => t.id === selectedTrackId);
+                    if (!track) return;
+                    
+                    const framesPerBeat = fps * (60 / bpm);
+                    const newEndFrame = Math.round((track.boxStartBeat + value) * framesPerBeat - 1);
+                    
+                    setTracks(prevTracks => 
+                      prevTracks.map(t =>
+                        t.id === selectedTrackId 
+                          ? { 
+                              ...t, 
+                              durationBeats: value,
+                              endFrame: newEndFrame
+                            }
+                          : t
+                      )
+                    );
+                    
+                    // Update in database
+                    try {
+                      await updateTrack(selectedTrackId, {
+                        durationBeats: value
+                      });
+                      
+                      // Refresh projects to ensure we have the latest data
+                      await fetchProjects();
+                    } catch (error) {
+                      console.error("Failed to update track duration:", error);
+                    }
+                  }
+                }}
+                style={{
+                  width: '80px',
+                  padding: '4px 8px',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
             <div style={{
               display: 'flex',
               alignItems: 'center',

@@ -68,5 +68,48 @@ export const timelineStyles = {
     transform hover:scale-[1.02] active:scale-[0.98]`,
   
   timelineWrapper: `bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10
-    shadow-lg`
+    shadow-lg`,
+    
+  // Track list styles
+  trackListContainer: `bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/10
+    shadow-lg mb-6`,
+    
+  trackListHeader: `flex justify-between items-center mb-4`,
+  
+  trackListTitle: `text-xl font-bold text-transparent bg-clip-text 
+    bg-gradient-to-r from-blue-400 to-purple-400`,
+  
+  addTrackButton: `px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 
+    text-blue-400 text-sm font-medium hover:bg-blue-500/30 
+    focus:outline-none focus:ring-2 focus:ring-blue-500/50 
+    transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]`,
+  
+  trackForm: `bg-gray-800/50 rounded-lg p-4 mb-4 border border-gray-700/50`,
+  
+  formGroup: `mb-3`,
+  
+  formActions: `flex justify-end mt-4`,
+  
+  trackList: `space-y-2`,
+  
+  trackItem: `bg-gray-800/50 rounded-lg p-3 flex justify-between items-center 
+    border border-gray-700/50 hover:bg-gray-700/50 cursor-pointer transition-colors`,
+  
+  selectedTrack: `bg-blue-900/30 border-blue-500/50 hover:bg-blue-800/50`,
+  
+  trackInfo: `flex-1`,
+  
+  trackName: `text-gray-200 font-medium`,
+  
+  trackDetails: `text-gray-400 text-sm mt-1`,
+  
+  trackActions: `flex space-x-2`,
+  
+  editButton: `px-2 py-1 rounded bg-gray-700/50 text-gray-300 text-xs 
+    hover:bg-gray-600/50 transition-colors`,
+  
+  deleteButton: `px-2 py-1 rounded bg-red-900/30 text-red-300 text-xs 
+    hover:bg-red-800/50 transition-colors`,
+    
+  noTracks: `text-center text-gray-400 py-4`
 } 

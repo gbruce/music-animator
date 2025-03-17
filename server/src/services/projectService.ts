@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { Track } from './trackService';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,7 @@ export interface Project {
   trackStartBeat: number;
   trackDurationBeats: number;
   userId: string;
+  tracks: Track[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,18 +48,27 @@ export class ProjectService {
         trackDurationBeats: data.trackDurationBeats || 120,
         userId: data.userId,
       },
+      include: {
+        tracks: true,
+      },
     }) as unknown as Project;
   }
 
   async getProjectById(id: string): Promise<Project | null> {
     return prisma.project.findUnique({
       where: { id },
+      include: {
+        tracks: true,
+      },
     }) as unknown as Project | null;
   }
 
   async getProjectsByUserId(userId: string): Promise<Project[]> {
     return prisma.project.findMany({
       where: { userId },
+      include: {
+        tracks: true,
+      },
       orderBy: { createdAt: 'desc' },
     }) as unknown as Project[];
   }
@@ -66,12 +77,18 @@ export class ProjectService {
     return prisma.project.update({
       where: { id },
       data,
+      include: {
+        tracks: true,
+      },
     }) as unknown as Project;
   }
 
   async deleteProject(id: string): Promise<Project> {
     return prisma.project.delete({
       where: { id },
+      include: {
+        tracks: true,
+      },
     }) as unknown as Project;
   }
 } 

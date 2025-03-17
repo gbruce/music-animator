@@ -36,15 +36,24 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface Track {
+  id: string;
+  name: string;
+  startBeat: number;
+  durationBeats: number;
+  projectId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   bpm: number;
   fps: number;
   duration: number;
-  trackStartBeat: number;
-  trackDurationBeats: number;
   userId: string;
+  tracks: Track[];
   createdAt: string;
   updatedAt: string;
 }
@@ -54,8 +63,6 @@ export interface CreateProjectData {
   bpm?: number;
   fps?: number;
   duration?: number;
-  trackStartBeat?: number;
-  trackDurationBeats?: number;
 }
 
 export interface UpdateProjectData {
@@ -63,8 +70,18 @@ export interface UpdateProjectData {
   bpm?: number;
   fps?: number;
   duration?: number;
-  trackStartBeat?: number;
-  trackDurationBeats?: number;
+}
+
+export interface CreateTrackData {
+  name: string;
+  startBeat?: number;
+  durationBeats?: number;
+}
+
+export interface UpdateTrackData {
+  name?: string;
+  startBeat?: number;
+  durationBeats?: number;
 }
 
 const api = axios.create({
@@ -141,5 +158,31 @@ export const projectApi = {
 
   deleteProject: async (id: string): Promise<void> => {
     await api.delete(`/projects/${id}`);
+  },
+};
+
+export const trackApi = {
+  createTrack: async (projectId: string, data: CreateTrackData): Promise<Track> => {
+    const response = await api.post<Track>(`/projects/${projectId}/tracks`, data);
+    return response.data;
+  },
+
+  getTracks: async (projectId: string): Promise<Track[]> => {
+    const response = await api.get<Track[]>(`/projects/${projectId}/tracks`);
+    return response.data;
+  },
+
+  getTrack: async (id: string): Promise<Track> => {
+    const response = await api.get<Track>(`/tracks/${id}`);
+    return response.data;
+  },
+
+  updateTrack: async (id: string, data: UpdateTrackData): Promise<Track> => {
+    const response = await api.put<Track>(`/tracks/${id}`, data);
+    return response.data;
+  },
+
+  deleteTrack: async (id: string): Promise<void> => {
+    await api.delete(`/tracks/${id}`);
   },
 }; 
