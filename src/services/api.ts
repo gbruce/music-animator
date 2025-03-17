@@ -36,6 +36,37 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  bpm: number;
+  fps: number;
+  duration: number;
+  trackStartBeat: number;
+  trackDurationBeats: number;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProjectData {
+  name: string;
+  bpm?: number;
+  fps?: number;
+  duration?: number;
+  trackStartBeat?: number;
+  trackDurationBeats?: number;
+}
+
+export interface UpdateProjectData {
+  name?: string;
+  bpm?: number;
+  fps?: number;
+  duration?: number;
+  trackStartBeat?: number;
+  trackDurationBeats?: number;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -84,5 +115,31 @@ export const authApi = {
 
   logout: () => {
     localStorage.removeItem('token');
+  },
+};
+
+export const projectApi = {
+  createProject: async (data: CreateProjectData): Promise<Project> => {
+    const response = await api.post<Project>('/projects', data);
+    return response.data;
+  },
+
+  getProjects: async (): Promise<Project[]> => {
+    const response = await api.get<Project[]>('/projects');
+    return response.data;
+  },
+
+  getProject: async (id: string): Promise<Project> => {
+    const response = await api.get<Project>(`/projects/${id}`);
+    return response.data;
+  },
+
+  updateProject: async (id: string, data: UpdateProjectData): Promise<Project> => {
+    const response = await api.put<Project>(`/projects/${id}`, data);
+    return response.data;
+  },
+
+  deleteProject: async (id: string): Promise<void> => {
+    await api.delete(`/projects/${id}`);
   },
 }; 

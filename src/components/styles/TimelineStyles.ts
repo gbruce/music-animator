@@ -10,7 +10,11 @@ export const timelineStyles = {
   
   contentContainer: `w-full`,
   
-  userInfoContainer: `absolute top-4 right-4 flex items-center gap-4`,
+  topBar: `flex justify-between items-center w-full mb-6`,
+  
+  projectSelectorContainer: `flex items-center gap-4`,
+  
+  userInfoContainer: `flex items-center gap-4`,
   
   username: `text-gray-300 font-medium`,
   
@@ -21,6 +25,30 @@ export const timelineStyles = {
   
   heading: `text-4xl font-bold text-transparent bg-clip-text 
     bg-gradient-to-r from-blue-400 to-purple-400 text-center mb-6`,
+  
+  projectSelector: `flex justify-center mb-6`,
+  
+  projectDropdown: `px-4 py-2 rounded-lg bg-gray-900/50 border border-gray-700 
+    text-gray-100 focus:outline-none focus:ring-2 
+    focus:ring-blue-500 focus:border-transparent transition-all duration-200
+    w-64`,
+  
+  newProjectForm: `flex justify-center mb-6`,
+  
+  createButton: `px-4 py-2 ml-2 rounded-lg bg-gradient-to-r from-green-600 to-teal-600 
+    text-white font-medium hover:from-green-500 hover:to-teal-500 
+    focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 
+    focus:ring-offset-gray-900 transition-all duration-200
+    transform hover:scale-[1.02] active:scale-[0.98]`,
+  
+  cancelButton: `px-4 py-2 ml-2 rounded-lg bg-gray-700/50 border border-gray-600 
+    text-gray-300 font-medium hover:bg-gray-700 
+    focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 
+    focus:ring-offset-gray-900 transition-all duration-200
+    transform hover:scale-[1.02] active:scale-[0.98]`,
+  
+  loadingContainer: `flex justify-center items-center min-h-screen 
+    text-xl font-medium text-blue-300`,
   
   controlsContainer: `flex flex-wrap gap-6 mb-8`,
   
