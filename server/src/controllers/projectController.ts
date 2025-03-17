@@ -10,20 +10,18 @@ export class ProjectController {
 
   createProject = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { name, bpm, fps, duration, trackStartBeat, trackDurationBeats } = req.body;
+      const { name, bpm, fps, duration } = req.body;
       const project = await this.projectService.createProject({
         name,
         bpm,
         fps,
         duration,
-        trackStartBeat,
-        trackDurationBeats,
-        userId,
+        userId: user.id,
       });
 
       res.status(201).json(project);
@@ -34,12 +32,12 @@ export class ProjectController {
 
   getProjects = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const projects = await this.projectService.getProjectsByUserId(userId);
+      const projects = await this.projectService.getProjectsByUserId(user.id);
       res.json(projects);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -48,8 +46,8 @@ export class ProjectController {
 
   getProject = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -60,7 +58,7 @@ export class ProjectController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to access this project' });
       }
 
@@ -72,8 +70,8 @@ export class ProjectController {
 
   updateProject = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -84,18 +82,16 @@ export class ProjectController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to update this project' });
       }
 
-      const { name, bpm, fps, duration, trackStartBeat, trackDurationBeats } = req.body;
+      const { name, bpm, fps, duration } = req.body;
       const updatedProject = await this.projectService.updateProject(id, {
         name,
         bpm,
         fps,
         duration,
-        trackStartBeat,
-        trackDurationBeats,
       });
 
       res.json(updatedProject);
@@ -106,8 +102,8 @@ export class ProjectController {
 
   deleteProject = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -118,7 +114,7 @@ export class ProjectController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to delete this project' });
       }
 

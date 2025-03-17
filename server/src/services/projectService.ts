@@ -9,8 +9,6 @@ export interface Project {
   bpm: number;
   fps: number;
   duration: number;
-  trackStartBeat: number;
-  trackDurationBeats: number;
   userId: string;
   tracks: Track[];
   createdAt: Date;
@@ -22,8 +20,6 @@ export interface CreateProjectDto {
   bpm?: number;
   fps?: number;
   duration?: number;
-  trackStartBeat?: number;
-  trackDurationBeats?: number;
   userId: string;
 }
 
@@ -32,8 +28,6 @@ export interface UpdateProjectDto {
   bpm?: number;
   fps?: number;
   duration?: number;
-  trackStartBeat?: number;
-  trackDurationBeats?: number;
 }
 
 export class ProjectService {
@@ -44,8 +38,6 @@ export class ProjectService {
         bpm: data.bpm || 120,
         fps: data.fps || 24,
         duration: data.duration || 60,
-        trackStartBeat: data.trackStartBeat || 0,
-        trackDurationBeats: data.trackDurationBeats || 120,
         userId: data.userId,
       },
       include: {
@@ -64,6 +56,7 @@ export class ProjectService {
   }
 
   async getProjectsByUserId(userId: string): Promise<Project[]> {
+    console.log('getProjectsByUserId', userId);
     return prisma.project.findMany({
       where: { userId },
       include: {

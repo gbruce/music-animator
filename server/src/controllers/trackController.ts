@@ -13,8 +13,8 @@ export class TrackController {
 
   createTrack = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -27,7 +27,7 @@ export class TrackController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to access this project' });
       }
 
@@ -46,8 +46,8 @@ export class TrackController {
 
   getTracks = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -59,7 +59,7 @@ export class TrackController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to access this project' });
       }
 
@@ -72,8 +72,8 @@ export class TrackController {
 
   getTrack = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -90,7 +90,7 @@ export class TrackController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to access this track' });
       }
 
@@ -102,8 +102,8 @@ export class TrackController {
 
   updateTrack = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -120,7 +120,7 @@ export class TrackController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to update this track' });
       }
 
@@ -139,8 +139,8 @@ export class TrackController {
 
   deleteTrack = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
@@ -157,7 +157,7 @@ export class TrackController {
         return res.status(404).json({ error: 'Project not found' });
       }
 
-      if (project.userId !== userId) {
+      if (project.userId !== user.id) {
         return res.status(403).json({ error: 'Not authorized to delete this track' });
       }
 

@@ -111,5 +111,47 @@ export const timelineStyles = {
   deleteButton: `px-2 py-1 rounded bg-red-900/30 text-red-300 text-xs 
     hover:bg-red-800/50 transition-colors`,
     
-  noTracks: `text-center text-gray-400 py-4`
+  noTracks: `text-center text-gray-400 py-4`,
+  
+  // Image manager styles
+  dropZone: `w-full h-40 border-2 border-dashed border-blue-400/50 rounded-lg 
+    flex items-center justify-center cursor-pointer transition-all duration-200
+    hover:border-blue-400 hover:bg-blue-400/10 mb-6`,
+  
+  dropZoneActive: `border-blue-500 bg-blue-500/20`,
+  
+  dropZoneContent: `flex flex-col items-center justify-center text-gray-300`,
+  
+  uploadIcon: `w-10 h-10 mb-2 text-blue-400`,
+  
+  errorMessage: `text-red-400 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg`,
+  
+  imageGrid: `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 
+    max-h-[calc(100vh-300px)] overflow-y-auto p-2`,
+  
+  noImages: `col-span-full text-center text-gray-400 py-8`,
+  
+  imageCard: `relative bg-gray-800 rounded-lg overflow-hidden border border-gray-700 
+    transition-all duration-200 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10`,
+  
+  imagePreview: `w-full aspect-square object-cover`,
+  
+  imageInfo: `p-3`,
+  
+  imageName: `text-gray-200 font-medium truncate`,
+  
+  imageDetails: `text-gray-400 text-sm`,
+  
+  imageSeparator: `mx-1`,
+  
+  imageDeleteButton: `absolute top-2 right-2 w-8 h-8 rounded-full bg-gray-900/80 
+    flex items-center justify-center text-gray-400 hover:text-red-400 
+    transition-all duration-200 hover:bg-gray-900`,
+  
+  // Tab navigation styles
+  tabContainer: `flex mb-6 border-b border-gray-700`,
+  
+  tab: `px-4 py-2 text-gray-400 hover:text-gray-200 cursor-pointer`,
+  
+  activeTab: `text-blue-400 border-b-2 border-blue-400`,
 } 

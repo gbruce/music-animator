@@ -17,6 +17,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   projects        Project[]
+  images          Image[]
 }
 
 model Project {
@@ -45,4 +46,22 @@ model Track {
   updatedAt       DateTime  @updatedAt
 
   @@index([projectId])
+}
+
+model Image {
+  id              String    @id @default(uuid())
+  identifier      String    @unique
+  filePath        String
+  height          Int
+  width           Int
+  fileSize        Int
+  imageType       String
+  filename        String
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadDate      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([identifier])
 } 

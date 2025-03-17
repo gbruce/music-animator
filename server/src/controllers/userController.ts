@@ -30,13 +30,13 @@ export class UserController {
 
   getProfile = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const user = await this.userService.getUserById(userId);
-      res.json(user);
+      const userResponse = await this.userService.getUserById(user.id);
+      res.json(userResponse);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -44,13 +44,13 @@ export class UserController {
 
   changePassword = async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
-      if (!userId) {
+      const user = req.user;
+      if (!user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
       const { currentPassword, newPassword } = req.body;
-      await this.userService.changePassword(userId, currentPassword, newPassword);
+      await this.userService.changePassword(user.id, currentPassword, newPassword);
       res.json({ message: 'Password updated successfully' });
     } catch (error: any) {
       res.status(400).json({ error: error.message });

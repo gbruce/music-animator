@@ -84,6 +84,19 @@ export interface UpdateTrackData {
   durationBeats?: number;
 }
 
+export interface Image {
+  id: string;
+  identifier: string;
+  filePath: string;
+  height: number;
+  width: number;
+  fileSize: number;
+  imageType: string;
+  uploadDate: string;
+  filename: string;
+  userId: string;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -185,4 +198,56 @@ export const trackApi = {
   deleteTrack: async (id: string): Promise<void> => {
     await api.delete(`/tracks/${id}`);
   },
+};
+
+export const imageApi = {
+  uploadImage: async (file: File): Promise<Image> => {
+    try {
+      console.log('Uploading image:', file.name);
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Create a custom config for form data
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      };
+      
+      const response = await api.post<Image>(`/images/upload`, formData, config);
+      console.log('Upload response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  },
+  
+  getUserImages: async (): Promise<Image[]> => {
+    try {
+      console.log('Getting user images');
+      const token = localStorage.getItem('token');
+      console.log('Token exists:', !!token);
+      
+      const response = await api.get<Image[]>('/images');
+      console.log('Images response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Get images error:', error);
+      throw error;
+    }
+  },
+  
+  getImageByIdentifier: async (identifier: string): Promise<Image> => {
+    const response = await api.get<Image>(`/images/${identifier}`);
+    return response.data;
+  },
+  
+  deleteImage: async (identifier: string): Promise<void> => {
+    await api.delete(`/images/${identifier}`);
+  },
+  
+  getImageUrl: (identifier: string): string => {
+    return `${API_URL.replace('/api', '')}/images/${identifier}`;
+  }
 }; 

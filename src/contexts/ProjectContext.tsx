@@ -50,8 +50,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     bpm = 120,
     fps = 24,
     duration = 60,
-    trackStartBeat = 0,
-    trackDurationBeats = 120
   ): Promise<Project> => {
     setLoading(true);
     setError(null);
@@ -62,8 +60,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
         bpm,
         fps,
         duration,
-        trackStartBeat,
-        trackDurationBeats
       });
       
       setProjects(prev => [newProject, ...prev]);

@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import { Track } from '../services/api';
+import TabNavigation, { Tab } from './TabNavigation';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const TimelineContainer: React.FC = () => {
   const { user, logout } = useAuth();
@@ -18,6 +20,8 @@ const TimelineContainer: React.FC = () => {
   } = useProjects();
   
   const { selectedTrack } = useTracks();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const [bpm, setBpm] = useState(120);
   const [duration, setDuration] = useState(60); // Duration in seconds
@@ -25,6 +29,7 @@ const TimelineContainer: React.FC = () => {
   const [fps, setFps] = useState(24);
   const [showNewProjectForm, setShowNewProjectForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [activeTab, setActiveTab] = useState<Tab>('projects');
 
   // Update local state when current project changes
   useEffect(() => {
@@ -97,6 +102,24 @@ const TimelineContainer: React.FC = () => {
     console.log(`Selected beat: ${beat}`);
   };
 
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    if (tab === 'images') {
+      navigate('/images');
+    } else {
+      navigate('/');
+    }
+  };
+
+  // Set active tab based on current route
+  useEffect(() => {
+    if (location.pathname === '/images') {
+      setActiveTab('images');
+    } else {
+      setActiveTab('projects');
+    }
+  }, [location.pathname]);
+
   if (projectsLoading && projects.length === 0) {
     return <div className={styles.loadingContainer}>Loading projects...</div>;
   }
@@ -138,6 +161,8 @@ const TimelineContainer: React.FC = () => {
               </div>
             )}
           </div>
+          
+          <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
           
           {showNewProjectForm && (
             <div className={styles.newProjectForm}>
