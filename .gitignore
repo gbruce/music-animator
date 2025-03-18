@@ -45,7 +45,8 @@ Thumbs.db
 .idea
 .vscode
 *.swp
-*.swo 
+*.swo
 
 # server files
 server/prisma
+server/uploads
