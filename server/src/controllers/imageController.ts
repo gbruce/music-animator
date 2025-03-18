@@ -10,7 +10,22 @@ const prisma = new PrismaClient();
 const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 const unlink = promisify(fs.unlink);
-const sizeOfPromise = promisify(sizeOf);
+
+// Don't use promisify with sizeOf as it already has a callback pattern
+// const sizeOfPromise = promisify(sizeOf);
+
+// Create a proper promise-based wrapper for sizeOf
+const sizeOfPromise = (buffer: Buffer) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Use synchronous version which is more reliable with buffers
+      const dimensions = sizeOf(buffer);
+      resolve(dimensions);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 // Base directory for storing uploaded files
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
@@ -34,6 +49,7 @@ export const imageController = {
   // Upload a new image
   async uploadImage(req: Request, res: Response) {
     try {
+      console.log('Upload image handler called');
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
       }
@@ -44,6 +60,8 @@ export const imageController = {
 
       const { buffer, originalname, mimetype } = req.file;
       const userId = req.user.id;
+      
+      console.log(`Processing image: ${originalname} (${buffer.length} bytes)`);
 
       // Create user-specific directory
       const userDir = path.join(UPLOAD_DIR, userId);
@@ -57,17 +75,28 @@ export const imageController = {
       const safeFilename = `${identifier}${extension}`;
       const filePath = path.join(userDir, safeFilename);
 
-      // Get image dimensions
-      const dimensions = await sizeOfPromise(buffer);
+      console.log('Getting image dimensions...');
+      let dimensions;
+      try {
+        // Use synchronous version to avoid callback issues
+        dimensions = sizeOf(buffer);
+        console.log('Image dimensions:', dimensions);
+      } catch (err) {
+        console.error('Error getting image dimensions:', err);
+        return res.status(400).json({ error: 'Could not determine image dimensions' });
+      }
       
-      if (!dimensions.width || !dimensions.height) {
+      if (!dimensions || !dimensions.width || !dimensions.height) {
         return res.status(400).json({ error: 'Invalid image file' });
       }
 
       // Write file to disk
+      console.log('Writing file to disk...');
       await writeFile(filePath, buffer);
+      console.log('File written successfully');
 
       // Create image record in database
+      console.log('Creating database record...');
       const image = await prisma.image.create({
         data: {
           identifier,
@@ -80,6 +109,7 @@ export const imageController = {
           userId
         }
       });
+      console.log('Database record created');
 
       res.status(201).json(image);
     } catch (error) {
@@ -91,15 +121,19 @@ export const imageController = {
   // Get all images for the current user
   async getUserImages(req: Request, res: Response) {
     try {
+      console.log('getUserImages called');
       if (!req.user) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
       const userId = req.user.id;
+      console.log('Fetching images for user:', userId);
+      
       const images = await prisma.image.findMany({
         where: { userId }
       });
       
+      console.log(`Found ${images.length} images`);
       res.json(images);
     } catch (error) {
       console.error('Error fetching user images:', error);

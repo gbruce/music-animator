@@ -6,17 +6,48 @@ import projectRoutes from './routes/projectRoutes';
 import trackRoutes from './routes/trackRoutes';
 import imageRoutes from './routes/imageRoutes';
 import path from 'path';
+import fs from 'fs';
+import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3001;
+const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json());
 
-// Create a static route for serving images
-app.use('/images', express.static(path.join(process.cwd(), 'uploads')));
+// Create a route for serving images by identifier
+app.get('/images/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    console.log(`Fetching image with identifier: ${identifier}`);
+    
+    // Find the image in the database
+    const image = await prisma.image.findUnique({
+      where: { identifier }
+    });
+    
+    if (!image) {
+      console.log(`Image not found: ${identifier}`);
+      return res.status(404).send('Image not found');
+    }
+    
+    // Check if file exists
+    if (!fs.existsSync(image.filePath)) {
+      console.log(`Image file not found at: ${image.filePath}`);
+      return res.status(404).send('Image file not found');
+    }
+    
+    // Serve the file
+    console.log(`Serving image from: ${image.filePath}`);
+    res.sendFile(image.filePath);
+  } catch (error) {
+    console.error('Error serving image:', error);
+    res.status(500).send('Error serving image');
+  }
+});
 
 // Routes
 app.use('/api/users', userRoutes);
