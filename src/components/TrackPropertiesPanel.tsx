@@ -15,9 +15,15 @@ import {
   Card,
   CardMedia,
   CardContent,
-  Divider
+  Divider,
+  InputAdornment
 } from '@mui/material';
-import { Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { 
+  Close as CloseIcon, 
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Save as SaveIcon
+} from '@mui/icons-material';
 
 interface Track {
   id: string;
@@ -56,11 +62,13 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
   handleFrameChange
 }) => {
   const { fetchProjects } = useProjects();
-  const { updateTrack } = useTracks();
+  const { updateTrack, deleteTrack } = useTracks();
   const { images } = useImages();
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(-1);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
 
   // Get the track's images if they exist (without changing the UI)
   const getTrackImages = (trackId: string | null) => {
@@ -148,139 +156,159 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
     }
   };
 
+  const handleRemoveTrack = async () => {
+    if (!selectedTrackId) return;
+    
+    try {
+      await deleteTrack(selectedTrackId);
+      // The track will be removed from the UI by the parent component
+      await fetchProjects();
+    } catch (error) {
+      console.error("Failed to delete track:", error);
+    }
+  };
+
+  const handleStartEditingName = () => {
+    if (!track) return;
+    setEditedName(track.name);
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async () => {
+    if (!selectedTrackId || !editedName.trim()) return;
+    
+    try {
+      // Update in local state
+      setTracks(prevTracks => 
+        prevTracks.map(t =>
+          t.id === selectedTrackId 
+            ? { ...t, name: editedName }
+            : t
+        )
+      );
+      
+      // Update in database
+      await updateTrack(selectedTrackId, { name: editedName });
+      
+      // Refresh projects
+      await fetchProjects();
+      
+      // Exit edit mode
+      setIsEditingName(false);
+    } catch (error) {
+      console.error("Failed to update track name:", error);
+    }
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+  };
+
   if (!selectedTrackId) return null;
 
   // Get track images but don't display them yet
   const trackImages = getTrackImages(selectedTrackId);
   const track = tracks.find(t => t.id === selectedTrackId);
+  if (!track) return null;
 
   return (
-    <Paper 
-      elevation={3} 
+    <Box 
       sx={{
         mt: 2,
         p: 2,
-        bgcolor: 'background.paper',
+        bgcolor: 'background.default',
         borderRadius: 1,
       }}
     >
-      <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-        Properties: {track?.name}
-      </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        mb: 2
+      }}>
+        {isEditingName ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <TextField
+              fullWidth
+              size="small"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              autoFocus
+              sx={{ mr: 1 }}
+            />
+            <IconButton size="small" color="primary" onClick={handleSaveName}>
+              <SaveIcon />
+            </IconButton>
+            <IconButton size="small" color="default" onClick={handleCancelEditName}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                {track.name}
+              </Typography>
+              <IconButton size="small" onClick={handleStartEditingName} sx={{ ml: 1 }}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<DeleteIcon />}
+              onClick={handleRemoveTrack}
+            >
+              Delete Track
+            </Button>
+          </>
+        )}
+      </Box>
       
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Start Beat"
-            type="number"
-            size="small"
-            value={track?.boxStartBeat}
-            onChange={async (e) => {
-              const value = parseInt(e.target.value, 10);
-              if (!isNaN(value) && value >= 0) {
-                const track = tracks.find(t => t.id === selectedTrackId);
-                if (!track) return;
-                
-                const framesPerBeat = fps * (60 / bpm);
-                const newStartFrame = Math.round(value * framesPerBeat);
-                const newEndFrame = Math.round((value + track.durationBeats) * framesPerBeat - 1);
-                
-                setTracks(prevTracks => 
-                  prevTracks.map(t =>
-                    t.id === selectedTrackId 
-                      ? { 
-                          ...t, 
-                          boxStartBeat: value,
-                          startFrame: newStartFrame,
-                          endFrame: newEndFrame
-                        }
-                      : t
-                  )
-                );
-                
-                // Update in database
-                try {
-                  await updateTrack(selectedTrackId, {
-                    startBeat: value,
-                    durationBeats: track.durationBeats
-                  });
-                  
-                  // Refresh projects to ensure we have the latest data
-                  await fetchProjects();
-                } catch (error) {
-                  console.error("Failed to update track position:", error);
-                }
-              }
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              Start Beat:
+            </Typography>
+            <Typography variant="body1" fontWeight="medium">
+              {track.boxStartBeat}
+            </Typography>
+          </Box>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Duration (beats)"
-            type="number"
-            size="small"
-            InputProps={{ inputProps: { min: 1 } }}
-            value={track?.durationBeats}
-            onChange={async (e) => {
-              const value = parseInt(e.target.value, 10);
-              if (!isNaN(value) && value >= 1) {
-                const track = tracks.find(t => t.id === selectedTrackId);
-                if (!track) return;
-                
-                const framesPerBeat = fps * (60 / bpm);
-                const newEndFrame = Math.round((track.boxStartBeat + value) * framesPerBeat - 1);
-                
-                setTracks(prevTracks => 
-                  prevTracks.map(t =>
-                    t.id === selectedTrackId 
-                      ? { 
-                          ...t, 
-                          durationBeats: value,
-                          endFrame: newEndFrame
-                        }
-                      : t
-                  )
-                );
-                
-                // Update in database
-                try {
-                  await updateTrack(selectedTrackId, {
-                    durationBeats: value
-                  });
-                  
-                  // Refresh projects to ensure we have the latest data
-                  await fetchProjects();
-                } catch (error) {
-                  console.error("Failed to update track duration:", error);
-                }
-              }
-            }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              Duration:
+            </Typography>
+            <Typography variant="body1" fontWeight="medium">
+              {track.durationBeats}
+            </Typography>
+          </Box>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="Start Frame"
-            type="number"
-            size="small"
-            value={track?.startFrame}
-            onChange={(e) => handleFrameChange(selectedTrackId, 'startFrame', e.target.value)}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              Start Frame:
+            </Typography>
+            <Typography variant="body1" fontWeight="medium">
+              {track.startFrame}
+            </Typography>
+          </Box>
         </Grid>
         
         <Grid item xs={12} sm={6} md={3}>
-          <TextField
-            fullWidth
-            label="End Frame"
-            type="number"
-            size="small"
-            value={track?.endFrame}
-            onChange={(e) => handleFrameChange(selectedTrackId, 'endFrame', e.target.value)}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              End Frame:
+            </Typography>
+            <Typography variant="body1" fontWeight="medium">
+              {track.endFrame}
+            </Typography>
+          </Box>
         </Grid>
       </Grid>
       
@@ -474,7 +502,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           </Box>
         </Box>
       </Modal>
-    </Paper>
+    </Box>
   );
 };
 

@@ -178,13 +178,11 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
       </AppBar>
 
       <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4 }}>
-        <Paper elevation={3} sx={{ minHeight: 'calc(100vh - 200px)', p: 2 }}>
-          {activeTab === 'projects' ? (
-            <TimelineContainer />
-          ) : (
-            <Images />
-          )}
-        </Paper>
+        {activeTab === 'projects' ? (
+          <TimelineContainer />
+        ) : (
+          <Images />
+        )}
       </Container>
 
       {/* New Project Dialog */}

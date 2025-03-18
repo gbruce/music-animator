@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Timeline from './Timeline';
-import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
+import { Box, TextField, Typography, Grid } from '@mui/material';
 
 const TimelineContainer: React.FC = () => {
   const { 
@@ -69,69 +69,72 @@ const TimelineContainer: React.FC = () => {
 
   if (!currentProject) {
     return (
-      <div className={styles.loadingContainer}>
-        {currentProject === undefined ? 'Loading project...' : 'No project selected. Please create or select a project.'}
-      </div>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100%', 
+        p: 3 
+      }}>
+        <Typography variant="body1" color="text.secondary">
+          {currentProject === undefined ? 'Loading project...' : 'No project selected. Please create or select a project.'}
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div>
-      <div className={styles.controlsContainer}>
-        <div className={styles.controlGroup}>
-          <label htmlFor="bpm-input" className={styles.label}>
-            BPM:
-          </label>
-          <input
-            id="bpm-input"
-            type="number"
-            min="1"
-            value={bpm}
-            onChange={handleBpmChange}
-            className={styles.input}
-          />
-        </div>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        gap: 2, 
+        p: 2, 
+        bgcolor: 'background.default',
+        borderBottom: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <TextField
+          label="BPM"
+          type="number"
+          size="small"
+          inputProps={{ min: 1 }}
+          value={bpm}
+          onChange={handleBpmChange}
+          sx={{ width: 100 }}
+        />
 
-        <div className={styles.controlGroup}>
-          <label htmlFor="fps-input" className={styles.label}>
-            FPS:
-          </label>
-          <input
-            id="fps-input"
-            type="number"
-            min="1"
-            value={fps}
-            onChange={handleFpsChange}
-            className={styles.input}
-          />
-        </div>
+        <TextField
+          label="FPS"
+          type="number"
+          size="small"
+          inputProps={{ min: 1 }}
+          value={fps}
+          onChange={handleFpsChange}
+          sx={{ width: 100 }}
+        />
 
-        <div className={styles.controlGroup}>
-          <label htmlFor="duration-input" className={styles.label}>
-            Duration:
-          </label>
-          <input
-            id="duration-input"
-            type="number"
-            min="1"
-            value={duration}
-            onChange={handleDurationChange}
-            className={styles.input}
-          />
-          <span className={styles.label}>sec</span>
-        </div>
-      </div>
+        <TextField
+          label="Duration (sec)"
+          type="number"
+          size="small"
+          inputProps={{ min: 1 }}
+          value={duration}
+          onChange={handleDurationChange}
+          sx={{ width: 150 }}
+        />
+      </Box>
 
-      <div className={styles.timelineWrapper}>
+      <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
         <Timeline
           bpm={bpm}
           totalBeats={totalBeats}
           onBeatSelect={handleBeatSelect}
           selectedTrack={selectedTrack}
         />
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 
-export default TimelineContainer; 
+export default TimelineContainer;

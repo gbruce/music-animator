@@ -38,12 +38,10 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
   const [currentBeat, setCurrentBeat] = useState(0);
   const [beatWidth, setBeatWidth] = useState(30); // Width of each beat marker in pixels
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [editingTrackId, setEditingTrackId] = useState<string | null>(null);
   const [draggingTrackId, setDraggingTrackId] = useState<string | null>(null);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartBeat, setDragStartBeat] = useState(0);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
   const [isTimelineDragging, setIsTimelineDragging] = useState(false);
   const [timelineDragStart, setTimelineDragStart] = useState(0);
   const [timelineScrollStart, setTimelineScrollStart] = useState(0);
@@ -169,44 +167,9 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
     }
   };
 
-  const handleNameClick = (trackId: string) => {
-    setEditingTrackId(trackId);
-    // Focus the input after it becomes visible
-    setTimeout(() => {
-      if (nameInputRef.current) {
-        nameInputRef.current.focus();
-        nameInputRef.current.select();
-      }
-    }, 0);
-  };
-
-  const handleNameChange = (trackId: string, newName: string) => {
-    setTracks(tracks.map(track => 
-      track.id === trackId ? { ...track, name: newName } : track
-    ));
-  };
-
-  const handleNameBlur = async () => {
-    if (editingTrackId) {
-      const track = tracks.find(t => t.id === editingTrackId);
-      if (track) {
-        try {
-          // Update the track name in the database
-          await updateTrack(editingTrackId, { name: track.name });
-          
-          // Refresh projects to ensure we have the latest data
-          await fetchProjects();
-        } catch (error) {
-          console.error("Failed to update track name:", error);
-        }
-      }
-    }
-    setEditingTrackId(null);
-  };
-
   const handleNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      handleNameBlur();
+      // Do nothing - handleNameBlur removed
     }
   };
 
@@ -510,19 +473,21 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
     <Box 
       sx={{ 
         width: '100%', 
-        padding: '20px 0', 
+        display: 'flex',
+        flexDirection: 'column',
         bgcolor: 'background.default',
-        color: 'text.primary'
+        color: 'text.primary',
+        height: '100%'
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1 }}>
         <Button
           onClick={addTrack}
           variant="contained"
           color="primary"
           size="small"
           startIcon={<AddIcon />}
-          sx={{ marginRight: '20px' }}
+          sx={{ mr: 2 }}
         >
           Add Track
         </Button>
@@ -531,102 +496,16 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
         </Typography>
       </Box>
 
-      <Box sx={{ position: 'relative', width: '100%', display: 'flex' }}>
-        {/* Fixed track names column */}
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            width: '170px', 
-            flexShrink: 0,
-            backgroundColor: 'background.paper',
-            zIndex: 3,
-            borderRight: '1px solid',
-            borderColor: 'divider'
-          }}
-        >
-          {/* Empty space for alignment with timeline */}
-          <Box sx={{ height: '41px' }} />
-          
-          {/* Track name containers */}
-          {tracks.map(track => (
-            <Box
-              key={track.id}
-              sx={{
-                height: `${beatWidth}px`,
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 12px 0 4px',
-              }}
-            >
-              {editingTrackId === track.id ? (
-                <input
-                  type="text"
-                  ref={nameInputRef}
-                  defaultValue={track.name}
-                  onChange={(e) => handleNameChange(track.id, e.target.value)}
-                  onBlur={handleNameBlur}
-                  onKeyDown={handleNameKeyDown}
-                  autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '4px 8px',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                    fontSize: '13px',
-                    backgroundColor: 'transparent',
-                    color: 'inherit'
-                  }}
-                />
-              ) : (
-                <Box 
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    width: '100%',
-                  }}
-                >
-                  <Typography
-                    onClick={() => handleNameClick(track.id)}
-                    sx={{
-                      fontSize: '13px',
-                      fontWeight: selectedTrackId === track.id ? 'bold' : 'normal',
-                      color: selectedTrackId === track.id ? 'primary.main' : 'text.primary',
-                      cursor: 'pointer',
-                      padding: '2px 4px',
-                      borderRadius: '2px',
-                      backgroundColor: selectedTrackId === track.id ? 'action.selected' : 'transparent',
-                      flexGrow: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {track.name}
-                  </Typography>
-                  <IconButton
-                    onClick={() => removeTrack(track.id)}
-                    size="small"
-                    color="error"
-                    aria-label="delete track"
-                    sx={{ padding: '2px' }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              )}
-            </Box>
-          ))}
-        </Paper>
-        
+      <Box sx={{ position: 'relative', width: '100%', display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Scrollable timeline area */}
         <Box 
           ref={timelineRef}
           sx={{ 
-            width: 'calc(100% - 170px)', 
+            width: '100%', 
             overflowX: 'auto',
+            overflowY: 'auto',
             position: 'relative',
-            backgroundColor: 'background.paper',
+            bgcolor: 'background.default',
           }}
           onWheel={handleWheel}
           onMouseDown={handleTimelineMouseDown}
@@ -672,6 +551,10 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
               display: 'flex',
               borderBottom: '1px solid',
               borderColor: 'divider',
+              position: 'sticky',
+              top: 0,
+              bgcolor: 'background.default',
+              zIndex: 2,
             }}>
               {Array.from({ length: totalBeats + 1 }, (_, i) => (
                 <Box
@@ -746,10 +629,28 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                       transform: draggingTrackId === track.id ? 'scale(1.02)' : 'scale(1)',
                       transition: 'all 0.1s ease-out',
                       pointerEvents: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
                     }}
                     onMouseDown={(e) => handleBoxMouseDown(e, track.id)}
                     onClick={(e) => handleBoxClick(e, track.id)}
-                  />
+                  >
+                    <Typography
+                      variant="caption"
+                      noWrap
+                      sx={{
+                        color: 'text.primary',
+                        fontSize: '11px',
+                        padding: '0 4px',
+                        pointerEvents: 'none',
+                        opacity: 0.8,
+                      }}
+                    >
+                      {track.name}
+                    </Typography>
+                  </Box>
                   <Box
                     className="beat-grid"
                     sx={{
@@ -784,16 +685,18 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
       </Box>
 
       {/* Track Properties Panel */}
-      <TrackPropertiesPanel
-        selectedTrackId={selectedTrackId}
-        tracks={tracks}
-        bpm={bpm}
-        fps={fps}
-        setTracks={setTracks}
-        handleFrameChange={handleFrameChange}
-      />
+      {selectedTrackId && (
+        <TrackPropertiesPanel
+          selectedTrackId={selectedTrackId}
+          tracks={tracks}
+          bpm={bpm}
+          fps={fps}
+          setTracks={setTracks}
+          handleFrameChange={handleFrameChange}
+        />
+      )}
     </Box>
   );
 };
 
-export default Timeline; 
+export default Timeline;
