@@ -8,8 +8,7 @@ import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { Profile } from './components/Profile';
 import { ForgotPassword } from './components/ForgotPassword';
-import TimelineContainer from './components/TimelineContainer';
-import Images from './components/Images';
+import Dashboard from './components/Dashboard';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -43,7 +42,7 @@ const App: React.FC = () => {
                   path="/"
                   element={
                     <PrivateRoute>
-                      <TimelineContainer />
+                      <Dashboard activeTab="projects" />
                     </PrivateRoute>
                   }
                 />
@@ -51,7 +50,7 @@ const App: React.FC = () => {
                   path="/images"
                   element={
                     <PrivateRoute>
-                      <Images />
+                      <Dashboard activeTab="images" />
                     </PrivateRoute>
                   }
                 />

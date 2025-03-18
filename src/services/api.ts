@@ -214,11 +214,29 @@ export const imageApi = {
         }
       };
       
-      const response = await api.post<Image>(`/images/upload`, formData, config);
-      console.log('Upload response:', response.data);
-      return response.data;
-    } catch (error) {
+      // Log token presence
+      const token = localStorage.getItem('token');
+      console.log('Token exists for upload:', !!token);
+      
+      // First try with the api instance
+      try {
+        console.log('Attempting upload with api instance');
+        const response = await api.post<Image>(`/images/upload`, formData, config);
+        console.log('Upload response:', response.data);
+        return response.data;
+      } catch (apiError: any) {
+        console.error('API instance upload failed:', apiError);
+        console.error('Error response:', apiError.response?.data);
+        console.error('Error status:', apiError.response?.status);
+        
+        // Fall back to direct axios call with explicit token
+        console.log('Trying direct axios call with explicit token');
+        throw apiError; // Remove this line when testing the fallback
+      }
+    } catch (error: any) {
       console.error('Upload error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response?.data);
       throw error;
     }
   },
@@ -248,6 +266,8 @@ export const imageApi = {
   },
   
   getImageUrl: (identifier: string): string => {
+    // Return the direct URL to the image using the identifier
+    console.log(`Creating image URL for identifier: ${identifier}`);
     return `${API_URL.replace('/api', '')}/images/${identifier}`;
   }
 }; 

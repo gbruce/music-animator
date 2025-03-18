@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Image, imageApi } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -19,7 +19,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -34,9 +34,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const uploadImage = async (file: File) => {
+  const uploadImage = useCallback(async (file: File) => {
     if (!user) throw new Error('User not authenticated');
     
     setLoading(true);
@@ -53,9 +53,9 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const deleteImage = async (identifier: string) => {
+  const deleteImage = useCallback(async (identifier: string) => {
     if (!user) throw new Error('User not authenticated');
     
     setLoading(true);
@@ -71,7 +71,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Load images when user changes
   useEffect(() => {
@@ -83,7 +83,7 @@ export const ImageProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log('ImageContext: No user, clearing images');
       setImages([]);
     }
-  }, [user]);
+  }, [user, fetchImages]);
 
   const value = {
     images,

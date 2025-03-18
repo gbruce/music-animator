@@ -154,4 +154,7 @@ export const timelineStyles = {
   tab: `px-4 py-2 text-gray-400 hover:text-gray-200 cursor-pointer`,
   
   activeTab: `text-blue-400 border-b-2 border-blue-400`,
+  
+  // Tab content style
+  tabContent: `w-full`,
 } 
