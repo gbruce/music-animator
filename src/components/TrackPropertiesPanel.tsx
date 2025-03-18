@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import { useImages } from '../contexts/ImageContext';
 import { imageApi } from '../services/api';
+import { useComfyUIWorkflow, WorkflowStatusDisplay } from './ComfyUIWorkflow';
 import { 
   Box, 
   Typography, 
@@ -22,7 +23,8 @@ import {
   Close as CloseIcon, 
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Save as SaveIcon
+  Save as SaveIcon,
+  AutoFixHigh as GenerateIcon
 } from '@mui/icons-material';
 
 interface Track {
@@ -69,6 +71,20 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+
+  // ComfyUI workflow integration
+  const {
+    status: workflowStatus,
+    statusMessage,
+    progress,
+    runWorkflow
+  } = useComfyUIWorkflow(
+    selectedTrackId || '', 
+    (result) => {
+      console.log('Workflow completed:', result);
+      // Here you could handle the result, e.g., save the generated image URL to the track
+    }
+  );
 
   // Get the track's images if they exist (without changing the UI)
   const getTrackImages = (trackId: string | null) => {
@@ -204,6 +220,10 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
     setIsEditingName(false);
   };
 
+  const handleGenerateImage = () => {
+    runWorkflow();
+  };
+
   if (!selectedTrackId) return null;
 
   // Get track images but don't display them yet
@@ -312,11 +332,31 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
         </Grid>
       </Grid>
       
-      {/* Image Grid Section */}
+      {/* Image Grid Section with Generate Button */}
       <Box sx={{ mt: 3 }}>
-        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
-          Track Images
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Typography variant="subtitle1" fontWeight="medium">
+            Track Images
+          </Typography>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              startIcon={<GenerateIcon />}
+              onClick={handleGenerateImage}
+              disabled={workflowStatus === 'loading' || workflowStatus === 'processing'}
+            >
+              Generate Image
+            </Button>
+            <WorkflowStatusDisplay 
+              status={workflowStatus} 
+              message={statusMessage} 
+              progress={progress}
+            />
+          </Box>
+        </Box>
+        
         <Grid container spacing={1} sx={{ mt: 1 }}>
           {trackImages.map((image, index) => (
             <Grid item xs={12 / 5} key={index}>
