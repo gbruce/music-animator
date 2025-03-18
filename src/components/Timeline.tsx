@@ -11,6 +11,16 @@ interface Track {
   startFrame: number;
   endFrame: number;
   durationBeats: number;
+  image1Id?: string | null;
+  image2Id?: string | null;
+  image3Id?: string | null;
+  image4Id?: string | null;
+  image5Id?: string | null;
+  image6Id?: string | null;
+  image7Id?: string | null;
+  image8Id?: string | null;
+  image9Id?: string | null;
+  image10Id?: string | null;
 }
 
 interface TimelineProps {
@@ -58,7 +68,17 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
               boxStartBeat: apiTrack.startBeat,
               durationBeats: apiTrack.durationBeats,
               startFrame: Math.round(apiTrack.startBeat * framesPerBeat),
-              endFrame: Math.round((apiTrack.startBeat + apiTrack.durationBeats) * framesPerBeat - 1)
+              endFrame: Math.round((apiTrack.startBeat + apiTrack.durationBeats) * framesPerBeat - 1),
+              image1Id: apiTrack.image1Id,
+              image2Id: apiTrack.image2Id,
+              image3Id: apiTrack.image3Id,
+              image4Id: apiTrack.image4Id,
+              image5Id: apiTrack.image5Id,
+              image6Id: apiTrack.image6Id,
+              image7Id: apiTrack.image7Id,
+              image8Id: apiTrack.image8Id,
+              image9Id: apiTrack.image9Id,
+              image10Id: apiTrack.image10Id
             };
           });
           
@@ -93,7 +113,17 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
           boxStartBeat: selectedTrack.startBeat,
           durationBeats: selectedTrack.durationBeats,
           startFrame: Math.round(selectedTrack.startBeat * framesPerBeat),
-          endFrame: Math.round((selectedTrack.startBeat + selectedTrack.durationBeats) * framesPerBeat - 1)
+          endFrame: Math.round((selectedTrack.startBeat + selectedTrack.durationBeats) * framesPerBeat - 1),
+          image1Id: selectedTrack.image1Id,
+          image2Id: selectedTrack.image2Id,
+          image3Id: selectedTrack.image3Id,
+          image4Id: selectedTrack.image4Id,
+          image5Id: selectedTrack.image5Id,
+          image6Id: selectedTrack.image6Id,
+          image7Id: selectedTrack.image7Id,
+          image8Id: selectedTrack.image8Id,
+          image9Id: selectedTrack.image9Id,
+          image10Id: selectedTrack.image10Id
         };
         
         setTracks(prevTracks => [...prevTracks, newTrack]);
@@ -101,10 +131,8 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
       
       // Select the track
       setSelectedTrackId(selectedTrack.id);
-      
-      // Scroll to the track's position - removed to prevent scrolling when selecting tracks
     }
-  }, [selectedTrack, bpm, fps, beatWidth]);
+  }, [selectedTrack, bpm, fps, beatWidth, tracks]);
 
   const handleScroll = () => {
     if (timelineRef.current) {
@@ -202,7 +230,17 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
         boxStartBeat: newApiTrack.startBeat,
         durationBeats: newApiTrack.durationBeats,
         startFrame: Math.round(newApiTrack.startBeat * framesPerBeat),
-        endFrame: Math.round((newApiTrack.startBeat + newApiTrack.durationBeats) * framesPerBeat - 1)
+        endFrame: Math.round((newApiTrack.startBeat + newApiTrack.durationBeats) * framesPerBeat - 1),
+        image1Id: newApiTrack.image1Id,
+        image2Id: newApiTrack.image2Id,
+        image3Id: newApiTrack.image3Id,
+        image4Id: newApiTrack.image4Id,
+        image5Id: newApiTrack.image5Id,
+        image6Id: newApiTrack.image6Id,
+        image7Id: newApiTrack.image7Id,
+        image8Id: newApiTrack.image8Id,
+        image9Id: newApiTrack.image9Id,
+        image10Id: newApiTrack.image10Id
       };
       
       // Add to local state

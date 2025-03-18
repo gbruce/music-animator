@@ -42,6 +42,16 @@ export interface Track {
   startBeat: number;
   durationBeats: number;
   projectId: string;
+  image1Id?: string | null;
+  image2Id?: string | null;
+  image3Id?: string | null;
+  image4Id?: string | null;
+  image5Id?: string | null;
+  image6Id?: string | null;
+  image7Id?: string | null;
+  image8Id?: string | null;
+  image9Id?: string | null;
+  image10Id?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,12 +86,32 @@ export interface CreateTrackData {
   name: string;
   startBeat?: number;
   durationBeats?: number;
+  image1Id?: string | null;
+  image2Id?: string | null;
+  image3Id?: string | null;
+  image4Id?: string | null;
+  image5Id?: string | null;
+  image6Id?: string | null;
+  image7Id?: string | null;
+  image8Id?: string | null;
+  image9Id?: string | null;
+  image10Id?: string | null;
 }
 
 export interface UpdateTrackData {
   name?: string;
   startBeat?: number;
   durationBeats?: number;
+  image1Id?: string | null;
+  image2Id?: string | null;
+  image3Id?: string | null;
+  image4Id?: string | null;
+  image5Id?: string | null;
+  image6Id?: string | null;
+  image7Id?: string | null;
+  image8Id?: string | null;
+  image9Id?: string | null;
+  image10Id?: string | null;
 }
 
 export interface Image {

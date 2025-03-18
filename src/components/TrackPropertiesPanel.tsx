@@ -1,6 +1,7 @@
 import React from 'react';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
+import { useImages } from '../contexts/ImageContext';
 
 interface Track {
   id: string;
@@ -9,6 +10,16 @@ interface Track {
   startFrame: number;
   endFrame: number;
   durationBeats: number;
+  image1Id?: string | null;
+  image2Id?: string | null;
+  image3Id?: string | null;
+  image4Id?: string | null;
+  image5Id?: string | null;
+  image6Id?: string | null;
+  image7Id?: string | null;
+  image8Id?: string | null;
+  image9Id?: string | null;
+  image10Id?: string | null;
 }
 
 interface TrackPropertiesPanelProps {
@@ -30,8 +41,61 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
 }) => {
   const { fetchProjects } = useProjects();
   const { updateTrack } = useTracks();
+  const { images } = useImages();
+
+  // Get the track's images if they exist (without changing the UI)
+  const getTrackImages = (trackId: string | null) => {
+    if (!trackId) return Array(10).fill(null);
+    
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return Array(10).fill(null);
+    
+    return [
+      track.image1Id ? images.find(img => img.id === track.image1Id) || null : null,
+      track.image2Id ? images.find(img => img.id === track.image2Id) || null : null,
+      track.image3Id ? images.find(img => img.id === track.image3Id) || null : null,
+      track.image4Id ? images.find(img => img.id === track.image4Id) || null : null,
+      track.image5Id ? images.find(img => img.id === track.image5Id) || null : null,
+      track.image6Id ? images.find(img => img.id === track.image6Id) || null : null,
+      track.image7Id ? images.find(img => img.id === track.image7Id) || null : null,
+      track.image8Id ? images.find(img => img.id === track.image8Id) || null : null,
+      track.image9Id ? images.find(img => img.id === track.image9Id) || null : null,
+      track.image10Id ? images.find(img => img.id === track.image10Id) || null : null,
+    ];
+  };
+
+  // Update a track's image by index (0-9)
+  const updateTrackImage = async (trackId: string, imageIndex: number, imageId: string | null) => {
+    if (!trackId) return;
+
+    try {
+      const updateData: Record<string, string | null> = {};
+      const fieldName = `image${imageIndex + 1}Id` as keyof Track;
+      updateData[fieldName] = imageId;
+
+      // Update in local state
+      setTracks(prevTracks => 
+        prevTracks.map(t =>
+          t.id === trackId 
+            ? { ...t, [fieldName]: imageId }
+            : t
+        )
+      );
+      
+      // Update in database
+      await updateTrack(trackId, updateData);
+      
+      // Refresh projects to ensure we have the latest data
+      await fetchProjects();
+    } catch (error) {
+      console.error(`Failed to update track image at index ${imageIndex}:`, error);
+    }
+  };
 
   if (!selectedTrackId) return null;
+
+  // Get track images but don't display them yet
+  const trackImages = getTrackImages(selectedTrackId);
 
   return (
     <div style={{

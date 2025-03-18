@@ -19,7 +19,21 @@ export class TrackController {
       }
 
       const { projectId } = req.params;
-      const { name, startBeat, durationBeats } = req.body;
+      const { 
+        name, 
+        startBeat, 
+        durationBeats,
+        image1Id,
+        image2Id,
+        image3Id,
+        image4Id,
+        image5Id,
+        image6Id,
+        image7Id,
+        image8Id,
+        image9Id,
+        image10Id
+      } = req.body;
 
       // Verify the project exists and belongs to the user
       const project = await this.projectService.getProjectById(projectId);
@@ -36,6 +50,16 @@ export class TrackController {
         startBeat,
         durationBeats,
         projectId,
+        image1Id,
+        image2Id,
+        image3Id,
+        image4Id,
+        image5Id,
+        image6Id,
+        image7Id,
+        image8Id,
+        image9Id,
+        image10Id
       });
 
       res.status(201).json(track);
@@ -124,11 +148,36 @@ export class TrackController {
         return res.status(403).json({ error: 'Not authorized to update this track' });
       }
 
-      const { name, startBeat, durationBeats } = req.body;
+      const { 
+        name, 
+        startBeat, 
+        durationBeats,
+        image1Id,
+        image2Id,
+        image3Id,
+        image4Id,
+        image5Id,
+        image6Id,
+        image7Id,
+        image8Id,
+        image9Id,
+        image10Id
+      } = req.body;
+      
       const updatedTrack = await this.trackService.updateTrack(id, {
         name,
         startBeat,
         durationBeats,
+        image1Id,
+        image2Id,
+        image3Id,
+        image4Id,
+        image5Id,
+        image6Id,
+        image7Id,
+        image8Id,
+        image9Id,
+        image10Id
       });
 
       res.json(updatedTrack);

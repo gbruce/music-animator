@@ -7,7 +7,23 @@ interface TrackContextType {
   selectedTrack: Track | null;
   loading: boolean;
   error: string | null;
-  createTrack: (name: string, startBeat?: number, durationBeats?: number) => Promise<Track>;
+  createTrack: (
+    name: string, 
+    startBeat?: number, 
+    durationBeats?: number,
+    imageIds?: {
+      image1Id?: string | null;
+      image2Id?: string | null;
+      image3Id?: string | null;
+      image4Id?: string | null;
+      image5Id?: string | null;
+      image6Id?: string | null;
+      image7Id?: string | null;
+      image8Id?: string | null;
+      image9Id?: string | null;
+      image10Id?: string | null;
+    }
+  ) => Promise<Track>;
   updateTrack: (id: string, data: Partial<Track>) => Promise<Track>;
   deleteTrack: (id: string) => Promise<void>;
   selectTrack: (track: Track | null) => void;
@@ -36,7 +52,19 @@ export const TrackProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const createTrack = async (
     name: string,
     startBeat = 0,
-    durationBeats = 16
+    durationBeats = 16,
+    imageIds?: {
+      image1Id?: string | null;
+      image2Id?: string | null;
+      image3Id?: string | null;
+      image4Id?: string | null;
+      image5Id?: string | null;
+      image6Id?: string | null;
+      image7Id?: string | null;
+      image8Id?: string | null;
+      image9Id?: string | null;
+      image10Id?: string | null;
+    }
   ): Promise<Track> => {
     if (!currentProject) {
       throw new Error('No project selected');
@@ -49,7 +77,8 @@ export const TrackProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const newTrack = await trackApi.createTrack(currentProject.id, {
         name,
         startBeat,
-        durationBeats
+        durationBeats,
+        ...imageIds
       });
       
       setTracks(prev => [...prev, newTrack]);
