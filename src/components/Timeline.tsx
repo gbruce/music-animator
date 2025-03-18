@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Track as ApiTrack, trackApi } from '../services/api';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
+import TrackPropertiesPanel from './TrackPropertiesPanel';
 
 interface Track {
   id: string;
@@ -501,40 +502,44 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
             >
               {editingTrackId === track.id ? (
                 <input
-                  ref={nameInputRef}
                   type="text"
-                  value={track.name}
+                  ref={nameInputRef}
+                  defaultValue={track.name}
                   onChange={(e) => handleNameChange(track.id, e.target.value)}
                   onBlur={handleNameBlur}
                   onKeyDown={handleNameKeyDown}
+                  autoFocus
                   style={{
                     width: '100%',
-                    border: '1px solid #ccc',
                     padding: '4px 8px',
-                    fontSize: '14px',
+                    border: '1px solid #ccc',
                     borderRadius: '4px',
+                    fontSize: '13px',
                   }}
                 />
               ) : (
-                <div style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  backgroundColor: '#f8f8f8',
-                  border: '1px solid transparent',
-                  borderRadius: '4px',
-                }}>
+                <div 
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    width: '100%',
+                  }}
+                >
                   <div
                     onClick={() => handleNameClick(track.id)}
                     style={{
-                      flex: 1,
+                      fontSize: '13px',
+                      fontWeight: selectedTrackId === track.id ? 'bold' : 'normal',
+                      color: selectedTrackId === track.id ? '#1D4ED8' : '#333',
                       cursor: 'pointer',
-                      padding: '4px 8px 4px 4px',
-                      fontSize: '14px',
-                      whiteSpace: 'nowrap',
+                      padding: '2px 4px',
+                      borderRadius: '2px',
+                      backgroundColor: selectedTrackId === track.id ? 'rgba(29, 78, 216, 0.1)' : 'transparent',
+                      flexGrow: 1,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {track.name}
@@ -542,14 +547,16 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                   <button
                     onClick={() => removeTrack(track.id)}
                     style={{
-                      width: '24px',
-                      padding: '2px 6px',
                       background: 'none',
                       border: 'none',
                       cursor: 'pointer',
+                      color: '#999',
                       fontSize: '14px',
-                      color: '#666',
+                      padding: '2px 6px',
+                      marginLeft: '4px',
+                      borderRadius: '4px',
                     }}
+                    title="Remove track"
                   >
                     ×
                   </button>
@@ -558,145 +565,127 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
             </div>
           ))}
         </div>
-
-        {/* Scrollable timeline and grid area */}
-        <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+        
+        {/* Scrollable timeline area */}
+        <div 
+          ref={timelineRef}
+          style={{ 
+            width: 'calc(100% - 170px)', 
+            overflowX: 'auto',
+            position: 'relative',
+            backgroundColor: 'white',
+          }}
+          onWheel={handleWheel}
+          onMouseDown={handleTimelineMouseDown}
+        >
+          {/* Scroll indicators */}
           {canScrollLeft && (
-            <div style={{
-              position: 'absolute',
-              left: '0',
-              top: '20px', // Center over timeline markers (40px height)
-              width: '24px',
-              height: '24px',
-              background: 'rgba(0, 0, 0, 0.5)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '12px',
-              zIndex: 2,
-              pointerEvents: 'none',
-            }}>
-              ←
-            </div>
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '40px',
+                height: '100%',
+                background: 'linear-gradient(to right, rgba(0,0,0,0.05), transparent)',
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}
+            />
           )}
           {canScrollRight && (
-            <div style={{
-              position: 'absolute',
-              right: '0',
-              top: '20px', // Center over timeline markers (40px height)
-              width: '24px',
-              height: '24px',
-              background: 'rgba(0, 0, 0, 0.5)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '12px',
-              zIndex: 2,
-              pointerEvents: 'none',
-            }}>
-              →
-            </div>
+            <div 
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '40px',
+                height: '100%',
+                background: 'linear-gradient(to left, rgba(0,0,0,0.05), transparent)',
+                zIndex: 2,
+                pointerEvents: 'none',
+              }}
+            />
           )}
-          <div
-            ref={timelineRef}
-            className="timeline-scroll"
-            style={{
-              width: '100%',
-              overflowX: 'auto',
-              backgroundColor: '#f0f0f0',
-              padding: '10px 0',
-              msOverflowStyle: 'none',
-              scrollbarWidth: 'none',
-              cursor: isTimelineDragging ? 'grabbing' : 'grab',
-              position: 'relative',
-              zIndex: 1,
-            }}
-            onScroll={(e) => {
-              handleScroll();
-              updateScrollIndicators();
-            }}
-            onWheel={handleWheel}
-            onMouseDown={handleTimelineMouseDown}
-            onClick={handleTimelineClick}
-          >
-            <style>
-              {`
-                .timeline-scroll::-webkit-scrollbar {
-                  display: none;
-                }
-              `}
-            </style>
-            <div>
-              {/* Timeline markers */}
-              <div
-                className="timeline-content"
-                style={{
-                  width: `${totalBeats * beatWidth}px`,
-                  height: '40px',
-                  position: 'relative',
-                  marginBottom: '1px',
-                }}
-                onClick={handleTimelineClick}
-              >
-                {Array.from({ length: totalBeats }, (_, i) => (
+          
+          <div style={{
+            width: Math.max(800, totalBeats * beatWidth),
+            minWidth: '100%',
+          }}>
+            {/* Beat markers */}
+            <div style={{
+              height: '40px',
+              display: 'flex',
+              borderBottom: '1px solid #ccc',
+            }}>
+              {Array.from({ length: totalBeats + 1 }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: `${beatWidth}px`,
+                    height: '100%',
+                    position: 'relative',
+                    borderRight: i < totalBeats ? '1px solid #ccc' : 'none',
+                  }}
+                >
                   <div
-                    key={i}
-                    className="beat-marker"
                     style={{
                       position: 'absolute',
-                      left: `${i * beatWidth}px`,
-                      height: i % 4 === 0 ? '20px' : '10px',
-                      width: '1px',
-                      backgroundColor: i % 4 === 0 ? '#333' : '#999',
-                      top: '0',
+                      bottom: '2px',
+                      left: '4px',
+                      fontSize: '11px',
+                      color: '#666',
                     }}
                   >
-                    {i % 4 === 0 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '25px',
-                          left: '-15px',
-                          fontSize: '12px',
-                        }}
-                      >
-                        {i}
-                      </div>
-                    )}
+                    {i}
                   </div>
-                ))}
-              </div>
-
-              {/* Beat grids */}
+                  {i % 4 === 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '16px',
+                        left: '4px',
+                        fontSize: '10px',
+                        color: '#999',
+                      }}
+                    >
+                      {formatTime(i)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Track rows */}
+            <div style={{
+              width: '100%',
+            }}>
               {tracks.map(track => (
                 <div
                   key={track.id}
                   style={{
                     position: 'relative',
+                    height: `${beatWidth}px`,
                   }}
                 >
-                  {/* Box overlay */}
+                  {/* Track box */}
                   <div
-                    data-box-id={track.id}
+                    className="track-box"
                     style={{
                       position: 'absolute',
-                      left: `${track.boxStartBeat * beatWidth}px`,
                       top: '2px',
-                      bottom: '2px',
-                      width: `${track.durationBeats * beatWidth - 4}px`,
-                      backgroundColor: selectedTrackId === track.id ? '#2563eb' : '#4a90e2',
-                      opacity: selectedTrackId === track.id ? 1 : 0.6,
+                      left: `${track.boxStartBeat * beatWidth}px`,
+                      width: `${track.durationBeats * beatWidth}px`,
+                      height: `${beatWidth - 4}px`,
+                      backgroundColor: selectedTrackId === track.id ? 'rgba(59, 130, 246, 0.3)' : 'rgba(55, 65, 81, 0.1)',
+                      border: selectedTrackId === track.id ? '2px solid #3b82f6' : '1px solid rgba(75, 85, 99, 0.5)',
                       borderRadius: '4px',
-                      zIndex: selectedTrackId === track.id ? 10 : 5,
-                      margin: '0 2px',
                       cursor: 'move',
+                      zIndex: 2,
                       userSelect: 'none',
-                      border: selectedTrackId === track.id ? '2px solid #1e40af' : '1px solid rgba(74, 144, 226, 0.3)',
                       boxShadow: selectedTrackId === track.id 
                         ? (draggingTrackId === track.id 
-                          ? '0 0 0 2px rgba(37, 99, 235, 0.3), 0 8px 16px rgba(0, 0, 0, 0.2)' 
+                          ? '0 0 0 2px rgba(37, 99, 235, 0.5), 0 4px 6px rgba(0, 0, 0, 0.1)' 
                           : '0 0 0 2px rgba(37, 99, 235, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)')
                         : 'none',
                       transform: draggingTrackId === track.id ? 'scale(1.02)' : 'scale(1)',
@@ -737,196 +726,15 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
         </div>
       </div>
 
-      {/* Properties Panel */}
-      {selectedTrackId && (
-        <div style={{
-          marginTop: '20px',
-          padding: '16px',
-          backgroundColor: '#f8f8f8',
-          borderRadius: '8px',
-          border: '1px solid #e0e0e0',
-        }}>
-          <div style={{
-            fontSize: '14px',
-            fontWeight: 'bold',
-            marginBottom: '12px',
-            color: '#333',
-          }}>
-            Properties: {tracks.find(t => t.id === selectedTrackId)?.name}
-          </div>
-          <div style={{
-            display: 'flex',
-            gap: '16px',
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <label style={{
-                fontSize: '13px',
-                color: '#666',
-              }}>
-                Start Beat:
-              </label>
-              <input
-                type="number"
-                value={tracks.find(t => t.id === selectedTrackId)?.boxStartBeat}
-                onChange={async (e) => {
-                  const value = parseInt(e.target.value, 10);
-                  if (!isNaN(value) && value >= 0) {
-                    const track = tracks.find(t => t.id === selectedTrackId);
-                    if (!track) return;
-                    
-                    const framesPerBeat = fps * (60 / bpm);
-                    const newStartFrame = Math.round(value * framesPerBeat);
-                    const newEndFrame = Math.round((value + track.durationBeats) * framesPerBeat - 1);
-                    
-                    setTracks(prevTracks => 
-                      prevTracks.map(t =>
-                        t.id === selectedTrackId 
-                          ? { 
-                              ...t, 
-                              boxStartBeat: value,
-                              startFrame: newStartFrame,
-                              endFrame: newEndFrame
-                            }
-                          : t
-                      )
-                    );
-                    
-                    // Update in database
-                    try {
-                      await updateTrack(selectedTrackId, {
-                        startBeat: value,
-                        durationBeats: track.durationBeats
-                      });
-                      
-                      // Refresh projects to ensure we have the latest data
-                      await fetchProjects();
-                    } catch (error) {
-                      console.error("Failed to update track position:", error);
-                    }
-                  }
-                }}
-                style={{
-                  width: '80px',
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <label style={{
-                fontSize: '13px',
-                color: '#666',
-              }}>
-                Duration (beats):
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={tracks.find(t => t.id === selectedTrackId)?.durationBeats}
-                onChange={async (e) => {
-                  const value = parseInt(e.target.value, 10);
-                  if (!isNaN(value) && value >= 1) {
-                    const track = tracks.find(t => t.id === selectedTrackId);
-                    if (!track) return;
-                    
-                    const framesPerBeat = fps * (60 / bpm);
-                    const newEndFrame = Math.round((track.boxStartBeat + value) * framesPerBeat - 1);
-                    
-                    setTracks(prevTracks => 
-                      prevTracks.map(t =>
-                        t.id === selectedTrackId 
-                          ? { 
-                              ...t, 
-                              durationBeats: value,
-                              endFrame: newEndFrame
-                            }
-                          : t
-                      )
-                    );
-                    
-                    // Update in database
-                    try {
-                      await updateTrack(selectedTrackId, {
-                        durationBeats: value
-                      });
-                      
-                      // Refresh projects to ensure we have the latest data
-                      await fetchProjects();
-                    } catch (error) {
-                      console.error("Failed to update track duration:", error);
-                    }
-                  }
-                }}
-                style={{
-                  width: '80px',
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <label style={{
-                fontSize: '13px',
-                color: '#666',
-              }}>
-                Start Frame:
-              </label>
-              <input
-                type="number"
-                value={tracks.find(t => t.id === selectedTrackId)?.startFrame}
-                onChange={(e) => handleFrameChange(selectedTrackId, 'startFrame', e.target.value)}
-                style={{
-                  width: '80px',
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}>
-              <label style={{
-                fontSize: '13px',
-                color: '#666',
-              }}>
-                End Frame:
-              </label>
-              <input
-                type="number"
-                value={tracks.find(t => t.id === selectedTrackId)?.endFrame}
-                onChange={(e) => handleFrameChange(selectedTrackId, 'endFrame', e.target.value)}
-                style={{
-                  width: '80px',
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Track Properties Panel */}
+      <TrackPropertiesPanel
+        selectedTrackId={selectedTrackId}
+        tracks={tracks}
+        bpm={bpm}
+        fps={fps}
+        setTracks={setTracks}
+        handleFrameChange={handleFrameChange}
+      />
     </div>
   );
 };
