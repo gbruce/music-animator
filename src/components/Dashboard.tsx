@@ -1,50 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TabNavigation, { Tab } from './TabNavigation';
-import TimelineContainer from './TimelineContainer';
-import Images from './Images';
-import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
+import { useTheme } from '../contexts/ThemeContext';
+import TimelineContainer from './TimelineContainer';
+import Images from './Images';
+import { 
+  AppBar, 
+  Box, 
+  Button, 
+  Container, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogTitle, 
+  FormControl, 
+  IconButton,
+  InputLabel, 
+  MenuItem, 
+  Paper, 
+  Select, 
+  Tab, 
+  Tabs, 
+  TextField, 
+  Toolbar, 
+  Typography,
+  SelectChangeEvent
+} from '@mui/material';
+import {
+  Brightness4 as LightModeIcon,
+  Brightness7 as DarkModeIcon,
+  Add as AddIcon,
+  Logout as LogoutIcon
+} from '@mui/icons-material';
 
 interface DashboardProps {
-  activeTab: Tab;
+  activeTab: 'projects' | 'images';
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) => {
-  const [activeTab, setActiveTab] = useState<Tab>(initialActiveTab);
+  const [activeTab, setActiveTab] = useState<'projects' | 'images'>(initialActiveTab);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const { 
     projects, 
     currentProject, 
     setCurrentProject, 
     createProject, 
-    updateProject,
     loading: projectsLoading 
   } = useProjects();
   
-  const [showNewProjectForm, setShowNewProjectForm] = useState(false);
+  const [openNewProjectDialog, setOpenNewProjectDialog] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectBpm, setNewProjectBpm] = useState(120);
+  const [newProjectFps, setNewProjectFps] = useState(24);
+  const [newProjectTotalBeats, setNewProjectTotalBeats] = useState(60);
 
   // Update active tab when prop changes
   useEffect(() => {
     setActiveTab(initialActiveTab);
   }, [initialActiveTab]);
 
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    if (tab === 'images') {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images') => {
+    setActiveTab(newValue);
+    if (newValue === 'images') {
       navigate('/images');
     } else {
       navigate('/');
     }
   };
 
-  const handleProjectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleProjectChange = (event: SelectChangeEvent) => {
     const projectId = event.target.value;
     if (projectId === 'new') {
-      setShowNewProjectForm(true);
+      setOpenNewProjectDialog(true);
     } else {
       const selectedProject = projects.find(p => p.id === projectId);
       if (selectedProject) {
@@ -53,91 +83,172 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     }
   };
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleOpenNewProjectDialog = () => {
+    setOpenNewProjectDialog(true);
+  };
+
+  const handleCloseNewProjectDialog = () => {
+    setOpenNewProjectDialog(false);
+    setNewProjectName('');
+  };
+
+  const handleCreateProject = async () => {
     if (newProjectName.trim()) {
-      await createProject(newProjectName, 120, 24, 60);
-      setNewProjectName('');
-      setShowNewProjectForm(false);
+      await createProject(newProjectName, newProjectBpm, newProjectFps, newProjectTotalBeats);
+      handleCloseNewProjectDialog();
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.glowEffect}>
-        <div className={styles.contentContainer}>
-          <div className={styles.topBar}>
-            <div className={styles.projectSelectorContainer}>
-              <select 
-                value={currentProject?.id || ''} 
-                onChange={handleProjectChange}
-                className={styles.projectDropdown}
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh',
+      bgcolor: 'background.default', 
+      color: 'text.primary'
+    }}>
+      <AppBar position="static" color="default" elevation={3}>
+        <Toolbar>
+          <FormControl variant="outlined" size="small" sx={{ minWidth: 200, mr: 2 }}>
+            <InputLabel id="project-select-label">Project</InputLabel>
+            <Select
+              labelId="project-select-label"
+              id="project-select"
+              value={currentProject?.id || ''}
+              onChange={handleProjectChange}
+              label="Project"
+            >
+              {projects.length === 0 && (
+                <MenuItem value="">No projects</MenuItem>
+              )}
+              {projects.map(project => (
+                <MenuItem key={project.id} value={project.id}>
+                  {project.name}
+                </MenuItem>
+              ))}
+              <MenuItem value="new">
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <AddIcon fontSize="small" sx={{ mr: 1 }} />
+                  New Project
+                </Box>
+              </MenuItem>
+            </Select>
+          </FormControl>
+
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Music Animator
+          </Typography>
+
+          <IconButton 
+            onClick={toggleTheme} 
+            color="inherit" 
+            sx={{ mr: 2 }}
+          >
+            {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
+
+          {user && (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body1" sx={{ mr: 2 }}>
+                {user.username}
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="inherit" 
+                size="small" 
+                onClick={logout}
+                startIcon={<LogoutIcon />}
               >
-                {projects.length === 0 && (
-                  <option value="">No projects</option>
-                )}
-                {projects.map(project => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-                <option value="new">+ New Project</option>
-              </select>
-            </div>
-
-            <h1 className={styles.heading}>Music Animator</h1>
-
-            {user && (
-              <div className={styles.userInfoContainer}>
-                <span className={styles.username}>{user.username}</span>
-                <button
-                  onClick={logout}
-                  className={styles.logoutButton}
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-          
-          <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
-          
-          {showNewProjectForm && (
-            <div className={styles.newProjectForm}>
-              <form onSubmit={handleCreateProject}>
-                <input
-                  type="text"
-                  placeholder="Project Name"
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  className={styles.input}
-                  required
-                />
-                <button type="submit" className={styles.createButton}>
-                  Create
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowNewProjectForm(false)}
-                  className={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-              </form>
-            </div>
+                Logout
+              </Button>
+            </Box>
           )}
+        </Toolbar>
 
-          {/* Render the content based on active tab */}
-          <div className={styles.tabContent}>
-            {activeTab === 'projects' ? (
-              <TimelineContainer />
-            ) : (
-              <Images />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange} 
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab label="Projects" value="projects" />
+          <Tab label="Images" value="images" />
+        </Tabs>
+      </AppBar>
+
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4 }}>
+        <Paper elevation={3} sx={{ minHeight: 'calc(100vh - 200px)', p: 2 }}>
+          {activeTab === 'projects' ? (
+            <TimelineContainer />
+          ) : (
+            <Images />
+          )}
+        </Paper>
+      </Container>
+
+      {/* New Project Dialog */}
+      <Dialog open={openNewProjectDialog} onClose={handleCloseNewProjectDialog}>
+        <DialogTitle>Create New Project</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Project Name"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            id="bpm"
+            label="BPM"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={newProjectBpm}
+            onChange={(e) => setNewProjectBpm(Number(e.target.value))}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            id="fps"
+            label="FPS"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={newProjectFps}
+            onChange={(e) => setNewProjectFps(Number(e.target.value))}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            id="total-beats"
+            label="Total Beats"
+            type="number"
+            fullWidth
+            variant="outlined"
+            value={newProjectTotalBeats}
+            onChange={(e) => setNewProjectTotalBeats(Number(e.target.value))}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseNewProjectDialog}>Cancel</Button>
+          <Button 
+            onClick={handleCreateProject} 
+            variant="contained" 
+            color="primary"
+            disabled={newProjectName.trim() === ''}
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

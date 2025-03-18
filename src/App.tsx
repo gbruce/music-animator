@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { TrackProvider } from './contexts/TrackContext';
 import { ImageProvider } from './contexts/ImageContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { Profile } from './components/Profile';
@@ -32,66 +33,68 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <ProjectProvider>
-        <TrackProvider>
-          <ImageProvider>
-            <Router>
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <PrivateRoute>
-                      <Dashboard activeTab="projects" />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/images"
-                  element={
-                    <PrivateRoute>
-                      <Dashboard activeTab="images" />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <PrivateRoute>
-                      <Profile />
-                    </PrivateRoute>
-                  }
-                />
-                <Route
-                  path="/login"
-                  element={
-                    <PublicRoute>
-                      <Login />
-                    </PublicRoute>
-                  }
-                />
-                <Route
-                  path="/signup"
-                  element={
-                    <PublicRoute>
-                      <Signup />
-                    </PublicRoute>
-                  }
-                />
-                <Route
-                  path="/forgot-password"
-                  element={
-                    <PublicRoute>
-                      <ForgotPassword />
-                    </PublicRoute>
-                  }
-                />
-              </Routes>
-            </Router>
-          </ImageProvider>
-        </TrackProvider>
-      </ProjectProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ProjectProvider>
+          <TrackProvider>
+            <ImageProvider>
+              <Router>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      <PrivateRoute>
+                        <Dashboard activeTab="projects" />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/images"
+                    element={
+                      <PrivateRoute>
+                        <Dashboard activeTab="images" />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <PrivateRoute>
+                        <Profile />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/login"
+                    element={
+                      <PublicRoute>
+                        <Login />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/signup"
+                    element={
+                      <PublicRoute>
+                        <Signup />
+                      </PublicRoute>
+                    }
+                  />
+                  <Route
+                    path="/forgot-password"
+                    element={
+                      <PublicRoute>
+                        <ForgotPassword />
+                      </PublicRoute>
+                    }
+                  />
+                </Routes>
+              </Router>
+            </ImageProvider>
+          </TrackProvider>
+        </ProjectProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

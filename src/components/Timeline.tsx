@@ -3,6 +3,8 @@ import { Track as ApiTrack, trackApi } from '../services/api';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import TrackPropertiesPanel from './TrackPropertiesPanel';
+import { Box, Button, IconButton, Typography, Paper, Tooltip } from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 
 interface Track {
   id: string;
@@ -505,48 +507,51 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
   ]);
 
   return (
-    <div 
-      className="timeline-container" 
-      style={{ width: '100%', padding: '20px 0' }}
+    <Box 
+      sx={{ 
+        width: '100%', 
+        padding: '20px 0', 
+        bgcolor: 'background.default',
+        color: 'text.primary'
+      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-        <button
+      <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+        <Button
           onClick={addTrack}
-          style={{
-            padding: '4px 12px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            backgroundColor: '#f0f0f0',
-            border: '1px solid #ccc',
-            borderRadius: '4px',
-            color: '#666',
-            marginRight: '20px',
+          variant="contained"
+          color="primary"
+          size="small"
+          startIcon={<AddIcon />}
+          sx={{ marginRight: '20px' }}
+        >
+          Add Track
+        </Button>
+        <Typography variant="body2" color="text.secondary">
+          {tracks.length > 0 ? `${tracks.length} track(s)` : 'No tracks'}
+        </Typography>
+      </Box>
+
+      <Box sx={{ position: 'relative', width: '100%', display: 'flex' }}>
+        {/* Fixed track names column */}
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            width: '170px', 
+            flexShrink: 0,
+            backgroundColor: 'background.paper',
+            zIndex: 3,
+            borderRight: '1px solid',
+            borderColor: 'divider'
           }}
         >
-          + Add Track
-        </button>
-        <div style={{ fontSize: '14px', color: '#666' }}>
-          {tracks.length > 0 ? `${tracks.length} track(s)` : 'No tracks'}
-        </div>
-      </div>
-
-      <div style={{ position: 'relative', width: '100%', display: 'flex' }}>
-        {/* Fixed track names column */}
-        <div style={{ 
-          width: '170px', 
-          flexShrink: 0,
-          backgroundColor: 'white',
-          zIndex: 3,
-          borderRight: '1px solid #ccc'
-        }}>
           {/* Empty space for alignment with timeline */}
-          <div style={{ height: '41px' }} />
+          <Box sx={{ height: '41px' }} />
           
           {/* Track name containers */}
           {tracks.map(track => (
-            <div
+            <Box
               key={track.id}
-              style={{
+              sx={{
                 height: `${beatWidth}px`,
                 display: 'flex',
                 alignItems: 'center',
@@ -568,27 +573,29 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                     border: '1px solid #ccc',
                     borderRadius: '4px',
                     fontSize: '13px',
+                    backgroundColor: 'transparent',
+                    color: 'inherit'
                   }}
                 />
               ) : (
-                <div 
-                  style={{
+                <Box 
+                  sx={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     width: '100%',
                   }}
                 >
-                  <div
+                  <Typography
                     onClick={() => handleNameClick(track.id)}
-                    style={{
+                    sx={{
                       fontSize: '13px',
                       fontWeight: selectedTrackId === track.id ? 'bold' : 'normal',
-                      color: selectedTrackId === track.id ? '#1D4ED8' : '#333',
+                      color: selectedTrackId === track.id ? 'primary.main' : 'text.primary',
                       cursor: 'pointer',
                       padding: '2px 4px',
                       borderRadius: '2px',
-                      backgroundColor: selectedTrackId === track.id ? 'rgba(29, 78, 216, 0.1)' : 'transparent',
+                      backgroundColor: selectedTrackId === track.id ? 'action.selected' : 'transparent',
                       flexGrow: 1,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -596,150 +603,145 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                     }}
                   >
                     {track.name}
-                  </div>
-                  <button
+                  </Typography>
+                  <IconButton
                     onClick={() => removeTrack(track.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#999',
-                      fontSize: '14px',
-                      padding: '2px 6px',
-                      marginLeft: '4px',
-                      borderRadius: '4px',
-                    }}
-                    title="Remove track"
+                    size="small"
+                    color="error"
+                    aria-label="delete track"
+                    sx={{ padding: '2px' }}
                   >
-                    ×
-                  </button>
-                </div>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               )}
-            </div>
+            </Box>
           ))}
-        </div>
+        </Paper>
         
         {/* Scrollable timeline area */}
-        <div 
+        <Box 
           ref={timelineRef}
-          style={{ 
+          sx={{ 
             width: 'calc(100% - 170px)', 
             overflowX: 'auto',
             position: 'relative',
-            backgroundColor: 'white',
+            backgroundColor: 'background.paper',
           }}
           onWheel={handleWheel}
           onMouseDown={handleTimelineMouseDown}
+          onScroll={handleScroll}
         >
           {/* Scroll indicators */}
           {canScrollLeft && (
-            <div 
-              style={{
+            <Box 
+              sx={{
                 position: 'absolute',
                 top: 0,
                 left: 0,
                 width: '40px',
                 height: '100%',
-                background: 'linear-gradient(to right, rgba(0,0,0,0.05), transparent)',
+                background: theme => `linear-gradient(to right, ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}, transparent)`,
                 zIndex: 2,
                 pointerEvents: 'none',
               }}
             />
           )}
           {canScrollRight && (
-            <div 
-              style={{
+            <Box 
+              sx={{
                 position: 'absolute',
                 top: 0,
                 right: 0,
                 width: '40px',
                 height: '100%',
-                background: 'linear-gradient(to left, rgba(0,0,0,0.05), transparent)',
+                background: theme => `linear-gradient(to left, ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}, transparent)`,
                 zIndex: 2,
                 pointerEvents: 'none',
               }}
             />
           )}
           
-          <div style={{
+          <Box sx={{
             width: Math.max(800, totalBeats * beatWidth),
             minWidth: '100%',
           }}>
             {/* Beat markers */}
-            <div style={{
+            <Box sx={{
               height: '40px',
               display: 'flex',
-              borderBottom: '1px solid #ccc',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
             }}>
               {Array.from({ length: totalBeats + 1 }, (_, i) => (
-                <div
+                <Box
                   key={i}
-                  style={{
+                  sx={{
                     width: `${beatWidth}px`,
                     height: '100%',
                     position: 'relative',
-                    borderRight: i < totalBeats ? '1px solid #ccc' : 'none',
+                    borderRight: i < totalBeats ? '1px solid' : 'none',
+                    borderColor: 'divider',
                   }}
                 >
-                  <div
-                    style={{
+                  <Typography
+                    variant="caption"
+                    sx={{
                       position: 'absolute',
                       bottom: '2px',
                       left: '4px',
-                      fontSize: '11px',
-                      color: '#666',
+                      color: 'text.secondary',
                     }}
                   >
                     {i}
-                  </div>
+                  </Typography>
                   {i % 4 === 0 && (
-                    <div
-                      style={{
+                    <Typography
+                      variant="caption"
+                      sx={{
                         position: 'absolute',
                         bottom: '16px',
                         left: '4px',
+                        color: 'text.disabled',
                         fontSize: '10px',
-                        color: '#999',
                       }}
                     >
                       {formatTime(i)}
-                    </div>
+                    </Typography>
                   )}
-                </div>
+                </Box>
               ))}
-            </div>
+            </Box>
             
             {/* Track rows */}
-            <div style={{
-              width: '100%',
-            }}>
+            <Box sx={{ width: '100%' }}>
               {tracks.map(track => (
-                <div
+                <Box
                   key={track.id}
-                  style={{
+                  sx={{
                     position: 'relative',
                     height: `${beatWidth}px`,
                   }}
                 >
                   {/* Track box */}
-                  <div
+                  <Box
                     className="track-box"
-                    style={{
+                    sx={{
                       position: 'absolute',
                       top: '2px',
                       left: `${track.boxStartBeat * beatWidth}px`,
                       width: `${track.durationBeats * beatWidth}px`,
                       height: `${beatWidth - 4}px`,
-                      backgroundColor: selectedTrackId === track.id ? 'rgba(59, 130, 246, 0.3)' : 'rgba(55, 65, 81, 0.1)',
-                      border: selectedTrackId === track.id ? '2px solid #3b82f6' : '1px solid rgba(75, 85, 99, 0.5)',
+                      bgcolor: selectedTrackId === track.id ? 'primary.dark' : 'action.hover',
+                      border: theme => `2px solid ${selectedTrackId === track.id ? theme.palette.primary.main : theme.palette.divider}`,
                       borderRadius: '4px',
                       cursor: 'move',
                       zIndex: 2,
                       userSelect: 'none',
                       boxShadow: selectedTrackId === track.id 
                         ? (draggingTrackId === track.id 
-                          ? '0 0 0 2px rgba(37, 99, 235, 0.5), 0 4px 6px rgba(0, 0, 0, 0.1)' 
-                          : '0 0 0 2px rgba(37, 99, 235, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)')
+                          ? 4 
+                          : 2)
                         : 'none',
                       transform: draggingTrackId === track.id ? 'scale(1.02)' : 'scale(1)',
                       transition: 'all 0.1s ease-out',
@@ -748,36 +750,38 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                     onMouseDown={(e) => handleBoxMouseDown(e, track.id)}
                     onClick={(e) => handleBoxClick(e, track.id)}
                   />
-                  <div
+                  <Box
                     className="beat-grid"
-                    style={{
+                    sx={{
                       width: `${totalBeats * beatWidth}px`,
                       height: `${beatWidth}px`,
                       display: 'flex',
-                      borderTop: '1px solid #ccc',
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
                       position: 'relative',
                     }}
                     onClick={handleTimelineClick}
                   >
                     {Array.from({ length: totalBeats }, (_, i) => (
-                      <div
+                      <Box
                         key={i}
                         className="beat-cell"
-                        style={{
+                        sx={{
                           width: `${beatWidth}px`,
                           height: `${beatWidth}px`,
-                          borderRight: '1px solid #ccc',
-                          backgroundColor: i % 4 === 0 ? '#f8f8f8' : 'white',
+                          borderRight: '1px solid',
+                          borderColor: 'divider',
+                          bgcolor: i % 4 === 0 ? 'action.hover' : 'transparent',
                         }}
                       />
                     ))}
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               ))}
-            </div>
-          </div>
-        </div>
-      </div>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
 
       {/* Track Properties Panel */}
       <TrackPropertiesPanel
@@ -788,7 +792,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
         setTracks={setTracks}
         handleFrameChange={handleFrameChange}
       />
-    </div>
+    </Box>
   );
 };
 

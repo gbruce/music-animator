@@ -3,6 +3,21 @@ import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import { useImages } from '../contexts/ImageContext';
 import { imageApi } from '../services/api';
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  TextField, 
+  Grid, 
+  Modal,
+  Button,
+  IconButton,
+  Card,
+  CardMedia,
+  CardContent,
+  Divider
+} from '@mui/material';
+import { Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 interface Track {
   id: string;
@@ -140,39 +155,26 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
   const track = tracks.find(t => t.id === selectedTrackId);
 
   return (
-    <div style={{
-      marginTop: '20px',
-      padding: '16px',
-      backgroundColor: '#f8f8f8',
-      borderRadius: '8px',
-      border: '1px solid #e0e0e0',
-    }}>
-      <div style={{
-        fontSize: '14px',
-        fontWeight: 'bold',
-        marginBottom: '12px',
-        color: '#333',
-      }}>
+    <Paper 
+      elevation={3} 
+      sx={{
+        mt: 2,
+        p: 2,
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+      }}
+    >
+      <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
         Properties: {track?.name}
-      </div>
-      <div style={{
-        display: 'flex',
-        gap: '16px',
-        marginBottom: '16px',
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <label style={{
-            fontSize: '13px',
-            color: '#666',
-          }}>
-            Start Beat:
-          </label>
-          <input
+      </Typography>
+      
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <TextField
+            fullWidth
+            label="Start Beat"
             type="number"
+            size="small"
             value={track?.boxStartBeat}
             onChange={async (e) => {
               const value = parseInt(e.target.value, 10);
@@ -211,29 +213,16 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
                 }
               }
             }}
-            style={{
-              width: '80px',
-              padding: '4px 8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '13px',
-            }}
           />
-        </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <label style={{
-            fontSize: '13px',
-            color: '#666',
-          }}>
-            Duration (beats):
-          </label>
-          <input
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <TextField
+            fullWidth
+            label="Duration (beats)"
             type="number"
-            min="1"
+            size="small"
+            InputProps={{ inputProps: { min: 1 } }}
             value={track?.durationBeats}
             onChange={async (e) => {
               const value = parseInt(e.target.value, 10);
@@ -269,291 +258,223 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
                 }
               }
             }}
-            style={{
-              width: '80px',
-              padding: '4px 8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '13px',
-            }}
           />
-        </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <label style={{
-            fontSize: '13px',
-            color: '#666',
-          }}>
-            Start Frame:
-          </label>
-          <input
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <TextField
+            fullWidth
+            label="Start Frame"
             type="number"
+            size="small"
             value={track?.startFrame}
             onChange={(e) => handleFrameChange(selectedTrackId, 'startFrame', e.target.value)}
-            style={{
-              width: '80px',
-              padding: '4px 8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '13px',
-            }}
           />
-        </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-        }}>
-          <label style={{
-            fontSize: '13px',
-            color: '#666',
-          }}>
-            End Frame:
-          </label>
-          <input
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <TextField
+            fullWidth
+            label="End Frame"
             type="number"
+            size="small"
             value={track?.endFrame}
             onChange={(e) => handleFrameChange(selectedTrackId, 'endFrame', e.target.value)}
-            style={{
-              width: '80px',
-              padding: '4px 8px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '13px',
-            }}
           />
-        </div>
-      </div>
+        </Grid>
+      </Grid>
       
       {/* Image Grid Section */}
-      <div style={{ marginTop: '16px' }}>
-        <div style={{
-          fontSize: '14px',
-          fontWeight: 'bold',
-          marginBottom: '8px',
-          color: '#333',
-        }}>
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
           Track Images
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '10px',
-        }}>
+        </Typography>
+        <Grid container spacing={1} sx={{ mt: 1 }}>
           {trackImages.map((image, index) => (
-            <div
-              key={index}
-              style={{
-                width: '100%',
-                aspectRatio: '1/1',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                backgroundColor: '#fff',
-                position: 'relative',
-                cursor: 'pointer',
-              }}
-              onClick={() => handleImageClick(index)}
-            >
-              {image ? (
-                <img
-                  src={imageApi.getImageUrl(image.identifier)}
-                  alt={`Track image ${index + 1}`}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
+            <Grid item xs={12 / 5} key={index}>
+              <Paper
+                elevation={1}
+                sx={{
+                  aspectRatio: '1/1',
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  bgcolor: 'background.paper',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    boxShadow: 2,
+                    transform: 'scale(1.02)',
+                  }
+                }}
+                onClick={() => handleImageClick(index)}
+              >
+                {image ? (
+                  <Box
+                    component="img"
+                    src={imageApi.getImageUrl(image.identifier)}
+                    alt={`Track image ${index + 1}`}
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                    }}
+                  />
+                ) : (
+                  <Typography variant="caption" color="text.secondary" align="center" p={1}>
+                    Image {index + 1}
+                  </Typography>
+                )}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: '4px',
+                    right: '4px',
+                    fontSize: '10px',
+                    px: 0.5,
+                    py: 0.2,
+                    bgcolor: 'rgba(0,0,0,0.5)',
+                    color: 'white',
+                    borderRadius: 0.5,
                   }}
-                />
-              ) : (
-                <div style={{
-                  color: '#aaa',
-                  fontSize: '12px',
-                  padding: '4px',
-                  textAlign: 'center',
-                }}>
-                  Image {index + 1}
-                </div>
-              )}
-              <div style={{
-                position: 'absolute',
-                bottom: '4px',
-                right: '4px',
-                fontSize: '10px',
-                padding: '2px 4px',
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                color: 'white',
-                borderRadius: '2px',
-              }}>
-                {index + 1}
-              </div>
-            </div>
+                >
+                  {index + 1}
+                </Box>
+              </Paper>
+            </Grid>
           ))}
-        </div>
-      </div>
+        </Grid>
+      </Box>
 
       {/* Image selector modal */}
-      {showImageSelector && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      <Modal
+        open={showImageSelector}
+        onClose={handleCloseImageSelector}
+        aria-labelledby="image-selector-modal"
+        aria-describedby="select-image-for-track"
+      >
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '80%',
+          maxWidth: '800px',
+          maxHeight: '80vh',
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          boxShadow: 24,
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            width: '80%',
-            maxWidth: '800px',
-            maxHeight: '80vh',
+          <Box sx={{
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            p: 2,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
           }}>
-            <div style={{
-              padding: '16px',
-              borderBottom: '1px solid #eee',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <h3 style={{ margin: 0 }}>Select Image for Slot {currentImageIndex + 1}</h3>
-              <button 
-                onClick={handleCloseImageSelector}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '20px',
-                }}
-              >
-                ×
-              </button>
-            </div>
-            
-            <div style={{
-              padding: '16px',
-              overflowY: 'auto',
-              flex: 1,
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                gap: '12px',
-              }}>
-                {images.map(img => (
-                  <div
-                    key={img.id}
-                    style={{
-                      border: selectedImageId === img.id ? '2px solid #2196F3' : '1px solid #ddd',
-                      borderRadius: '4px',
-                      padding: '8px',
+            <Typography variant="h6" id="image-selector-modal">
+              Select Image for Slot {currentImageIndex + 1}
+            </Typography>
+            <IconButton 
+              onClick={handleCloseImageSelector}
+              size="small"
+              edge="end"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          
+          <Box sx={{
+            p: 2,
+            overflowY: 'auto',
+            flex: 1,
+          }}>
+            <Grid container spacing={2}>
+              {images.map(img => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={img.id}>
+                  <Card 
+                    sx={{ 
                       cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      backgroundColor: selectedImageId === img.id ? '#e3f2fd' : 'white',
+                      border: theme => selectedImageId === img.id ? 
+                        `2px solid ${theme.palette.primary.main}` : 
+                        `1px solid ${theme.palette.divider}`,
+                      transform: selectedImageId === img.id ? 'scale(1.02)' : 'scale(1)',
+                      transition: 'all 0.2s',
+                      bgcolor: selectedImageId === img.id ? 'action.selected' : 'background.paper',
                     }}
                     onClick={() => handleSelectImage(img.id)}
                   >
-                    <img
-                      src={imageApi.getImageUrl(img.identifier)}
+                    <CardMedia
+                      component="img"
+                      height="120"
+                      image={imageApi.getImageUrl(img.identifier)}
                       alt={img.filename}
-                      style={{
-                        width: '100%',
-                        height: '100px',
-                        objectFit: 'contain',
-                      }}
+                      sx={{ objectFit: 'contain', p: 1 }}
                     />
-                    <div style={{
-                      fontSize: '12px',
-                      marginTop: '4px',
-                      textAlign: 'center',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      width: '100%',
-                    }}>
-                      {img.filename.length > 15 ? img.filename.substring(0, 15) + '...' : img.filename}
-                    </div>
-                  </div>
-                ))}
-                {images.length === 0 && (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '24px' }}>
+                    <Divider />
+                    <CardContent sx={{ py: 1 }}>
+                      <Typography variant="caption" noWrap>
+                        {img.filename}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+              {images.length === 0 && (
+                <Grid item xs={12}>
+                  <Typography variant="body2" color="text.secondary" align="center" p={3}>
                     No images available. Upload images in the Images tab.
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div style={{
-              padding: '16px',
-              borderTop: '1px solid #eee',
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}>
-              <button
-                onClick={handleRemoveImage}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#f44336',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+          
+          <Box sx={{
+            p: 2,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleRemoveImage}
+              startIcon={<DeleteIcon />}
+            >
+              Remove Image
+            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={handleCloseImageSelector}
               >
-                Remove Image
-              </button>
-              <div style={{
-                display: 'flex',
-                gap: '10px',
-              }}>
-                <button
-                  onClick={handleCloseImageSelector}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#f0f0f0',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmSelection}
-                  disabled={selectedImageId === null}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: selectedImageId === null ? '#cccccc' : '#4CAF50',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: selectedImageId === null ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  Select
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={selectedImageId === null}
+                onClick={handleConfirmSelection}
+              >
+                Select
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      </Modal>
+    </Paper>
   );
 };
 
