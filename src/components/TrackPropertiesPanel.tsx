@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import { useImages } from '../contexts/ImageContext';
+import { imageApi } from '../services/api';
 
 interface Track {
   id: string;
@@ -42,6 +43,9 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
   const { fetchProjects } = useProjects();
   const { updateTrack } = useTracks();
   const { images } = useImages();
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(-1);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
   // Get the track's images if they exist (without changing the UI)
   const getTrackImages = (trackId: string | null) => {
@@ -87,8 +91,45 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
       
       // Refresh projects to ensure we have the latest data
       await fetchProjects();
+      
+      // Reset state and close image selector
+      setSelectedImageId(null);
+      setShowImageSelector(false);
     } catch (error) {
       console.error(`Failed to update track image at index ${imageIndex}:`, error);
+    }
+  };
+
+  const handleImageClick = (index: number) => {
+    const track = tracks.find(t => t.id === selectedTrackId);
+    if (!track) return;
+    
+    // Initialize with current image ID
+    const currentImageId = track[`image${index + 1}Id` as keyof Track] as string | null;
+    setSelectedImageId(currentImageId);
+    setCurrentImageIndex(index);
+    setShowImageSelector(true);
+  };
+
+  const handleCloseImageSelector = () => {
+    setSelectedImageId(null);
+    setShowImageSelector(false);
+    setCurrentImageIndex(-1);
+  };
+
+  const handleSelectImage = (imageId: string) => {
+    setSelectedImageId(imageId);
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedTrackId && currentImageIndex >= 0) {
+      updateTrackImage(selectedTrackId, currentImageIndex, selectedImageId);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (selectedTrackId && currentImageIndex >= 0) {
+      updateTrackImage(selectedTrackId, currentImageIndex, null);
     }
   };
 
@@ -96,6 +137,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
 
   // Get track images but don't display them yet
   const trackImages = getTrackImages(selectedTrackId);
+  const track = tracks.find(t => t.id === selectedTrackId);
 
   return (
     <div style={{
@@ -111,11 +153,12 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
         marginBottom: '12px',
         color: '#333',
       }}>
-        Properties: {tracks.find(t => t.id === selectedTrackId)?.name}
+        Properties: {track?.name}
       </div>
       <div style={{
         display: 'flex',
         gap: '16px',
+        marginBottom: '16px',
       }}>
         <div style={{
           display: 'flex',
@@ -130,7 +173,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           </label>
           <input
             type="number"
-            value={tracks.find(t => t.id === selectedTrackId)?.boxStartBeat}
+            value={track?.boxStartBeat}
             onChange={async (e) => {
               const value = parseInt(e.target.value, 10);
               if (!isNaN(value) && value >= 0) {
@@ -191,7 +234,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           <input
             type="number"
             min="1"
-            value={tracks.find(t => t.id === selectedTrackId)?.durationBeats}
+            value={track?.durationBeats}
             onChange={async (e) => {
               const value = parseInt(e.target.value, 10);
               if (!isNaN(value) && value >= 1) {
@@ -248,7 +291,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           </label>
           <input
             type="number"
-            value={tracks.find(t => t.id === selectedTrackId)?.startFrame}
+            value={track?.startFrame}
             onChange={(e) => handleFrameChange(selectedTrackId, 'startFrame', e.target.value)}
             style={{
               width: '80px',
@@ -272,7 +315,7 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           </label>
           <input
             type="number"
-            value={tracks.find(t => t.id === selectedTrackId)?.endFrame}
+            value={track?.endFrame}
             onChange={(e) => handleFrameChange(selectedTrackId, 'endFrame', e.target.value)}
             style={{
               width: '80px',
@@ -284,6 +327,232 @@ const TrackPropertiesPanel: React.FC<TrackPropertiesPanelProps> = ({
           />
         </div>
       </div>
+      
+      {/* Image Grid Section */}
+      <div style={{ marginTop: '16px' }}>
+        <div style={{
+          fontSize: '14px',
+          fontWeight: 'bold',
+          marginBottom: '8px',
+          color: '#333',
+        }}>
+          Track Images
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '10px',
+        }}>
+          {trackImages.map((image, index) => (
+            <div
+              key={index}
+              style={{
+                width: '100%',
+                aspectRatio: '1/1',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                backgroundColor: '#fff',
+                position: 'relative',
+                cursor: 'pointer',
+              }}
+              onClick={() => handleImageClick(index)}
+            >
+              {image ? (
+                <img
+                  src={imageApi.getImageUrl(image.identifier)}
+                  alt={`Track image ${index + 1}`}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+              ) : (
+                <div style={{
+                  color: '#aaa',
+                  fontSize: '12px',
+                  padding: '4px',
+                  textAlign: 'center',
+                }}>
+                  Image {index + 1}
+                </div>
+              )}
+              <div style={{
+                position: 'absolute',
+                bottom: '4px',
+                right: '4px',
+                fontSize: '10px',
+                padding: '2px 4px',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                borderRadius: '2px',
+              }}>
+                {index + 1}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Image selector modal */}
+      {showImageSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            width: '80%',
+            maxWidth: '800px',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '16px',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <h3 style={{ margin: 0 }}>Select Image for Slot {currentImageIndex + 1}</h3>
+              <button 
+                onClick={handleCloseImageSelector}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{
+              padding: '16px',
+              overflowY: 'auto',
+              flex: 1,
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: '12px',
+              }}>
+                {images.map(img => (
+                  <div
+                    key={img.id}
+                    style={{
+                      border: selectedImageId === img.id ? '2px solid #2196F3' : '1px solid #ddd',
+                      borderRadius: '4px',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      backgroundColor: selectedImageId === img.id ? '#e3f2fd' : 'white',
+                    }}
+                    onClick={() => handleSelectImage(img.id)}
+                  >
+                    <img
+                      src={imageApi.getImageUrl(img.identifier)}
+                      alt={img.filename}
+                      style={{
+                        width: '100%',
+                        height: '100px',
+                        objectFit: 'contain',
+                      }}
+                    />
+                    <div style={{
+                      fontSize: '12px',
+                      marginTop: '4px',
+                      textAlign: 'center',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      width: '100%',
+                    }}>
+                      {img.filename.length > 15 ? img.filename.substring(0, 15) + '...' : img.filename}
+                    </div>
+                  </div>
+                ))}
+                {images.length === 0 && (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '24px' }}>
+                    No images available. Upload images in the Images tab.
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div style={{
+              padding: '16px',
+              borderTop: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}>
+              <button
+                onClick={handleRemoveImage}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Remove Image
+              </button>
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+              }}>
+                <button
+                  onClick={handleCloseImageSelector}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f0f0f0',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSelection}
+                  disabled={selectedImageId === null}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: selectedImageId === null ? '#cccccc' : '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: selectedImageId === null ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
