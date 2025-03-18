@@ -132,7 +132,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
       // Select the track
       setSelectedTrackId(selectedTrack.id);
     }
-  }, [selectedTrack, bpm, fps, beatWidth, tracks]);
+  }, [selectedTrack, bpm, fps, beatWidth]);
 
   const handleScroll = () => {
     if (timelineRef.current) {
@@ -427,13 +427,33 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
   };
 
   // Update scroll indicators
-  const updateScrollIndicators = () => {
-    if (timelineRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = timelineRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft + clientWidth < scrollWidth);
+  useEffect(() => {
+    const updateScrollIndicators = () => {
+      if (timelineRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = timelineRef.current;
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft + clientWidth < scrollWidth);
+      }
+    };
+
+    // Update on initial render
+    updateScrollIndicators();
+
+    // Add scroll event listener
+    const timelineElement = timelineRef.current;
+    if (timelineElement) {
+      timelineElement.addEventListener('scroll', updateScrollIndicators);
+      window.addEventListener('resize', updateScrollIndicators);
     }
-  };
+
+    // Clean up event listeners
+    return () => {
+      if (timelineElement) {
+        timelineElement.removeEventListener('scroll', updateScrollIndicators);
+        window.removeEventListener('resize', updateScrollIndicators);
+      }
+    };
+  }, []); // Empty dependency array as timelineRef is a ref object
 
   // Update frames for all tracks when FPS changes
   useEffect(() => {
@@ -483,11 +503,6 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
     timelineScrollStart,
     timelineRef.current
   ]);
-
-  useEffect(() => {
-    // Update scroll indicators when timeline content changes
-    updateScrollIndicators();
-  }, [beatWidth, totalBeats, tracks]);
 
   return (
     <div 
