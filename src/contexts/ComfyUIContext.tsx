@@ -45,7 +45,7 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       const response = await comfyClient.enqueue(
         workflow,
         {
-          progress: ({ max, value }) => {
+          progress: ({ max, value}) => {
             const percentage = Math.round((value / max) * 100);
             setProgress(percentage);
             setStatus('processing');
@@ -61,6 +61,7 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
         onComplete(response);
       }
       
+      comfyClient.disconnect();
       return response;
     } catch (error) {
       console.error('Error running ComfyUI workflow:', error);

@@ -12,20 +12,34 @@ import {
   InputLabel,
   OutlinedInput,
   InputAdornment,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import { useComfyUI } from '../contexts/ComfyUIContext';
 import WorkflowStatusDisplay from './WorkflowStatusDisplay';
 import flux from './flux-workflow.json';
+import { createLogger } from '../utils/logger';
+
+// Create a logger instance for this component
+const logger = createLogger('Txt2ImgPanel.tsx');
+
+// Resolution presets
+const PORTRAIT_RESOLUTION = { width: 720, height: 1280 };
+const LANDSCAPE_RESOLUTION = { width: 1280, height: 720 };
+
+type OrientationType = 'portrait' | 'landscape';
 
 const Txt2ImgPanel: React.FC = () => {
   // State variables
   const [seed, setSeed] = useState<number>(0);
-  const [width, setWidth] = useState<number>(720);
-  const [height, setHeight] = useState<number>(1280);
+  const [orientation, setOrientation] = useState<OrientationType>('portrait');
   const [prompt, setPrompt] = useState<string>("a rabbit in a field");
   const [batchCount, setBatchCount] = useState<number>(1);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  
+  // Derived width and height based on orientation
+  const { width, height } = orientation === 'portrait' ? PORTRAIT_RESOLUTION : LANDSCAPE_RESOLUTION;
   
   // Use the global ComfyUI context
   const { status, statusMessage, progress, runWorkflow, resetStatus } = useComfyUI();
@@ -33,6 +47,7 @@ const Txt2ImgPanel: React.FC = () => {
   // Reset generation state when status changes to success or error
   useEffect(() => {
     if (status === 'success' || status === 'error') {
+      logger.log(`Workflow status changed to: ${status}`);
       setIsGenerating(false);
     }
   }, [status]);
@@ -40,7 +55,16 @@ const Txt2ImgPanel: React.FC = () => {
   // Generate random seed function
   const generateRandomSeed = () => {
     const randomSeed = Math.floor(Math.random() * 999999999);
+    logger.log(`Generated random seed: ${randomSeed}`);
     setSeed(randomSeed);
+  };
+
+  // Handle orientation change
+  const handleOrientationChange = (_event: React.MouseEvent<HTMLElement>, newOrientation: OrientationType | null) => {
+    if (newOrientation !== null) {
+      logger.log(`Orientation changed to: ${newOrientation}`);
+      setOrientation(newOrientation);
+    }
   };
 
   // Handle generate button click
@@ -49,6 +73,10 @@ const Txt2ImgPanel: React.FC = () => {
     if (isGenerating) return;
 
     try {
+      // Reset the logger timer to measure the generation process
+      logger.resetTimer();
+      logger.log('Starting image generation process');
+      
       // Set local state to prevent multiple generations
       setIsGenerating(true);
       
@@ -60,50 +88,74 @@ const Txt2ImgPanel: React.FC = () => {
       
       // Update the workflow with our parameters
       // Set the seed
-      workflowCopy[25].inputs.noise_seed = seed === 0 ? Math.floor(Math.random() * 999999999) : seed;
+      const seedValue = seed === 0 ? Math.floor(Math.random() * 999999999) : seed;
+      workflowCopy[25].inputs.noise_seed = seedValue;
+      logger.log(`Using seed: ${seedValue}`);
       
       // Set the prompt
       workflowCopy[31].inputs.prompt = prompt;
+      logger.log(`Using prompt: "${prompt}"`);
+      
+      // Set the resolution
+      const resolutionSetting = orientation === 'portrait' ? "1152x2560 (9:16) - Portrait Ultra Large" : "2560x1152 (16:9) - Ultra Wide Large";
+      workflowCopy[33].inputs.size_selected = resolutionSetting;
+      logger.log(`Using resolution: ${resolutionSetting}`);
       
       // Set batch size if supported
       if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
         workflowCopy[27].inputs.batch_size = batchCount;
+        logger.log(`Using batch count: ${batchCount}`);
       }
       
       try {
         // Run the workflow and wait for completion
+        logger.log('Sending workflow to ComfyUI');
         const response = await runWorkflow(workflowCopy);
         
         // Process the result when workflow completes
-        console.log('Workflow completed:', response);
-
+        logger.log('Workflow completed successfully');
+        
         // Process images from the response
         if (response && response.images) {
+          logger.log(`Received ${response.images.length} images from workflow`);
+          
           for (const image of response.images) {
             if(image.type === "url"){
               const { data: url } = image;
+              logger.log(`Fetching image from URL: ${url}`);
               const res = await fetch(url);
               const blob = await res.blob();
               const imageUrl = URL.createObjectURL(blob);
               setGeneratedImages(prev => [...prev, imageUrl]);
             }
           }
+          logger.log('All images processed and added to the gallery');
         } else {
           // Fallback to placeholder for now
+          logger.warn('No images received from workflow, using placeholder');
           const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
           setGeneratedImages(prev => [...prev, placeholderImageUrl]);
         }
       } catch (error) {
-        console.error('Error processing workflow:', error);
+        logger.error('Error processing workflow', error);
       } finally {
         // Make sure isGenerating is reset after workflow is complete
+        logger.log('Generation process completed');
         setIsGenerating(false);
       }
     } catch (error) {
-      console.error('Error generating images:', error);
+      logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, prompt, runWorkflow, seed, width, isGenerating, resetStatus]);
+  }, [batchCount, height, prompt, runWorkflow, seed, width, isGenerating, resetStatus, orientation]);
+
+  // Log component mounted
+  useEffect(() => {
+    logger.log('Txt2ImgPanel component mounted');
+    return () => {
+      logger.log('Txt2ImgPanel component unmounted');
+    };
+  }, []);
 
   // Determine if the generate button should be disabled
   const isGenerateButtonDisabled = status === 'loading' || status === 'processing' || isGenerating;
@@ -223,34 +275,31 @@ const Txt2ImgPanel: React.FC = () => {
               />
             </FormControl>
             
-            {/* Resolution controls */}
-            <Typography variant="subtitle2" gutterBottom>Resolution</Typography>
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Width"
-                  type="number"
-                  value={width}
-                  onChange={(e) => setWidth(Number(e.target.value))}
-                  variant="outlined"
+            {/* Resolution orientation toggle */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>Resolution</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <ToggleButtonGroup
+                  value={orientation}
+                  exclusive
+                  onChange={handleOrientationChange}
+                  aria-label="image orientation"
                   size="small"
                   disabled={isGenerateButtonDisabled}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Height"
-                  type="number"
-                  value={height}
-                  onChange={(e) => setHeight(Number(e.target.value))}
-                  variant="outlined"
-                  size="small"
-                  disabled={isGenerateButtonDisabled}
-                />
-              </Grid>
-            </Grid>
+                  sx={{ mr: 2 }}
+                >
+                  <ToggleButton value="portrait" aria-label="portrait orientation">
+                    Portrait
+                  </ToggleButton>
+                  <ToggleButton value="landscape" aria-label="landscape orientation">
+                    Landscape
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                <Typography variant="body2" color="text.secondary">
+                  {width} × {height}
+                </Typography>
+              </Box>
+            </Box>
             
             {/* Prompt input */}
             <TextField
