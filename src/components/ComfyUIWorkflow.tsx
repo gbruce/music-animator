@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Client, Workflow } from '@stable-canvas/comfyui-client';
 import { Box, Typography, CircularProgress } from '@mui/material';
+import flux from './flux-workflow.json';
 
 // Status type definition
 export type WorkflowStatus = 'idle' | 'loading' | 'processing' | 'success' | 'error';
@@ -74,38 +75,25 @@ export const useComfyUIWorkflow = (trackId: string, onComplete?: (result: any) =
     try {
       setStatus('loading');
       setStatusMessage('Preparing workflow...');
-      
-      // Create workflow and get an instance
-      const workflow = generateImageWorkflow();
-      const instance = workflow.instance(client);
-    
-      // Subscribe to progress events
-      instance.on('execution_start', () => {
-        setStatus('processing');
-        setStatusMessage('Processing started...');
-      });
-      
-      instance.on('execution_cached', () => {
-        setStatusMessage('Using cached results...');
-      });
-      
-      instance.on('executing', (data: any) => {
-        const { node } = data;
-        setStatusMessage(`Executing node: ${node}...`);
-      });
-      
-      instance.on('progress', (data: any) => {
-        const { value, max } = data;
-        const percentage = Math.round((value / max) * 100);
-        setProgress(percentage);
-        setStatusMessage(`Processing: ${percentage}%`);
-      });
-      
-      // Enqueue the workflow
-      await instance.enqueue();
-      
-      // Wait for the result
-      const response = await instance.wait();
+
+      flux[25].inputs.noise_seed = Math.floor(Math.random() * 1000);
+      client.resetCache()
+      const response = await client.enqueue(
+        flux,
+        {
+          progress: ({max,value}) => {
+            const percentage = Math.round((value / max) * 100);
+            setProgress(percentage);
+            setStatusMessage(`Processing: ${percentage}%`);
+          },
+        },
+
+      );
+
+      // if((response.data as any)?.url){
+
+      // }
+
       
       setResult(response);
       setStatus('success');
