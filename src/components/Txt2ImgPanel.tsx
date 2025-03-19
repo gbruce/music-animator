@@ -65,20 +65,19 @@ const Txt2ImgPanel: React.FC = () => {
       // Set the prompt
       workflowCopy[31].inputs.prompt = prompt;
       
-      // Set resolution - the flux workflow uses a CascadeResolutions node
-      // We need to find the right resolution preset or handle custom resolution
-      
       // Set batch size if supported
       if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
         workflowCopy[27].inputs.batch_size = batchCount;
       }
       
-      // Run the workflow and get the result
-      const result = await runWorkflow(workflowCopy, async (response) => {
+      try {
+        // Run the workflow and wait for completion
+        const response = await runWorkflow(workflowCopy);
+        
         // Process the result when workflow completes
         console.log('Workflow completed:', response);
 
-        // In a real implementation, you would get image URLs from the response
+        // Process images from the response
         if (response && response.images) {
           for (const image of response.images) {
             if(image.type === "url"){
@@ -94,8 +93,12 @@ const Txt2ImgPanel: React.FC = () => {
           const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
           setGeneratedImages(prev => [...prev, placeholderImageUrl]);
         }
-      });
-      
+      } catch (error) {
+        console.error('Error processing workflow:', error);
+      } finally {
+        // Make sure isGenerating is reset after workflow is complete
+        setIsGenerating(false);
+      }
     } catch (error) {
       console.error('Error generating images:', error);
       setIsGenerating(false);

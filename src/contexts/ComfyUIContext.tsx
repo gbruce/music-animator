@@ -5,7 +5,6 @@ import { Client } from '@stable-canvas/comfyui-client';
 export type WorkflowStatus = 'idle' | 'loading' | 'processing' | 'success' | 'error';
 
 interface ComfyUIContextType {
-  client: Client;
   status: WorkflowStatus;
   progress: number;
   statusMessage: string;
@@ -14,12 +13,6 @@ interface ComfyUIContextType {
 }
 
 const ComfyUIContext = createContext<ComfyUIContextType | undefined>(undefined);
-
-// Create and initialize ComfyUI client
-const comfyClient = new Client({
-  api_host: 'localhost:8188'
-});
-comfyClient.connect();
 
 export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [status, setStatus] = useState<WorkflowStatus>('idle');
@@ -39,6 +32,12 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       setStatus('loading');
       setStatusMessage('Preparing workflow...');
 
+      // Create and initialize ComfyUI client
+        const comfyClient = new Client({
+            api_host: 'localhost:8188'
+        });
+      comfyClient.connect();
+  
       // Reset cache before running workflow
       comfyClient.resetCache();
       
@@ -72,7 +71,6 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   const value = {
-    client: comfyClient,
     status,
     progress,
     statusMessage,
