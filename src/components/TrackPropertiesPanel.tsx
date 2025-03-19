@@ -3,7 +3,8 @@ import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
 import { useImages } from '../contexts/ImageContext';
 import { imageApi } from '../services/api';
-import { useComfyUIWorkflow, WorkflowStatusDisplay } from './ComfyUIWorkflow';
+import { useComfyUIWorkflow } from './ComfyUIWorkflow';
+import WorkflowStatusDisplay from './WorkflowStatusDisplay';
 import { 
   Box, 
   Typography, 

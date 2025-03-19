@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -7,15 +7,15 @@ import {
   TextField,
   Typography,
   Paper,
-  CircularProgress,
   Slider,
   FormControl,
   InputLabel,
   OutlinedInput,
   InputAdornment,
 } from '@mui/material';
-
-type GenerationStatus = 'idle' | 'generating' | 'completed' | 'error';
+import { useComfyUI } from '../contexts/ComfyUIContext';
+import WorkflowStatusDisplay from './WorkflowStatusDisplay';
+import flux from './flux-workflow.json';
 
 const Txt2ImgPanel: React.FC = () => {
   // State variables
@@ -24,10 +24,18 @@ const Txt2ImgPanel: React.FC = () => {
   const [height, setHeight] = useState<number>(1280);
   const [prompt, setPrompt] = useState<string>("a rabbit in a field");
   const [batchCount, setBatchCount] = useState<number>(1);
-  const [status, setStatus] = useState<GenerationStatus>('idle');
-  const [progress, setProgress] = useState<number>(0);
-  const [statusMessage, setStatusMessage] = useState<string>('Ready to generate');
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  
+  // Use the global ComfyUI context
+  const { status, statusMessage, progress, runWorkflow, resetStatus } = useComfyUI();
+
+  // Reset generation state when status changes to success or error
+  useEffect(() => {
+    if (status === 'success' || status === 'error') {
+      setIsGenerating(false);
+    }
+  }, [status]);
 
   // Generate random seed function
   const generateRandomSeed = () => {
@@ -35,30 +43,67 @@ const Txt2ImgPanel: React.FC = () => {
     setSeed(randomSeed);
   };
 
-  // Mock function to simulate image generation
-  const handleGenerate = () => {
-    setStatus('generating');
-    setStatusMessage('Starting generation process...');
-    setProgress(0);
-    
-    // Simulate generation process with progress updates
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += 5;
-      setProgress(currentProgress);
-      setStatusMessage(`Generating: ${currentProgress}% complete`);
+  // Handle generate button click
+  const handleGenerate = useCallback(async () => {
+    // Don't allow starting a new generation if one is already in progress
+    if (isGenerating) return;
+
+    try {
+      // Set local state to prevent multiple generations
+      setIsGenerating(true);
       
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setStatus('completed');
-        setStatusMessage('Generation completed successfully!');
-        
-        // Add a placeholder image to the grid (in a real app, this would be the generated image)
-        const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
-        setGeneratedImages(prev => [...prev, placeholderImageUrl]);
+      // Reset ComfyUI status to ensure a clean start
+      resetStatus();
+      
+      // Create a deep copy of the flux workflow
+      const workflowCopy = JSON.parse(JSON.stringify(flux));
+      
+      // Update the workflow with our parameters
+      // Set the seed
+      workflowCopy[25].inputs.noise_seed = seed === 0 ? Math.floor(Math.random() * 999999999) : seed;
+      
+      // Set the prompt
+      workflowCopy[31].inputs.prompt = prompt;
+      
+      // Set resolution - the flux workflow uses a CascadeResolutions node
+      // We need to find the right resolution preset or handle custom resolution
+      
+      // Set batch size if supported
+      if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
+        workflowCopy[27].inputs.batch_size = batchCount;
       }
-    }, 300);
-  };
+      
+      // Run the workflow and get the result
+      const result = await runWorkflow(workflowCopy, async (response) => {
+        // Process the result when workflow completes
+        console.log('Workflow completed:', response);
+
+        // In a real implementation, you would get image URLs from the response
+        if (response && response.images) {
+          for (const image of response.images) {
+            if(image.type === "url"){
+              const { data: url } = image;
+              const res = await fetch(url);
+              const blob = await res.blob();
+              const imageUrl = URL.createObjectURL(blob);
+              setGeneratedImages(prev => [...prev, imageUrl]);
+            }
+          }
+        } else {
+          // Fallback to placeholder for now
+          const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
+          setGeneratedImages(prev => [...prev, placeholderImageUrl]);
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error generating images:', error);
+      setIsGenerating(false);
+    }
+  }, [batchCount, height, prompt, runWorkflow, seed, width, isGenerating, resetStatus]);
+
+  // Determine if the generate button should be disabled
+  const isGenerateButtonDisabled = status === 'loading' || status === 'processing' || isGenerating;
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
@@ -135,29 +180,19 @@ const Txt2ImgPanel: React.FC = () => {
             <Typography variant="h6" gutterBottom>Text to Image Controls</Typography>
             
             {/* Status display */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              {status === 'generating' && (
-                <CircularProgress size={16} sx={{ mr: 1 }} value={progress} variant="determinate" />
-              )}
-              <Typography 
-                variant="body2" 
-                color={
-                  status === 'idle' ? 'text.secondary' : 
-                  status === 'generating' ? 'info.main' :
-                  status === 'completed' ? 'success.main' : 'error.main'
-                }
-              >
-                {statusMessage}
-              </Typography>
-            </Box>
+            <WorkflowStatusDisplay 
+              status={status} 
+              message={statusMessage} 
+              progress={progress} 
+            />
             
             {/* Generate button */}
             <Button 
               variant="contained" 
               fullWidth 
               onClick={handleGenerate}
-              disabled={status === 'generating'}
-              sx={{ mb: 3 }}
+              disabled={isGenerateButtonDisabled}
+              sx={{ mb: 3, mt: 2 }}
             >
               Generate
             </Button>
@@ -175,7 +210,7 @@ const Txt2ImgPanel: React.FC = () => {
                     <Button 
                       size="small" 
                       onClick={generateRandomSeed}
-                      disabled={status === 'generating'}
+                      disabled={isGenerateButtonDisabled}
                     >
                       Random
                     </Button>
@@ -197,7 +232,7 @@ const Txt2ImgPanel: React.FC = () => {
                   onChange={(e) => setWidth(Number(e.target.value))}
                   variant="outlined"
                   size="small"
-                  disabled={status === 'generating'}
+                  disabled={isGenerateButtonDisabled}
                 />
               </Grid>
               <Grid item xs={6}>
@@ -209,7 +244,7 @@ const Txt2ImgPanel: React.FC = () => {
                   onChange={(e) => setHeight(Number(e.target.value))}
                   variant="outlined"
                   size="small"
-                  disabled={status === 'generating'}
+                  disabled={isGenerateButtonDisabled}
                 />
               </Grid>
             </Grid>
@@ -224,7 +259,7 @@ const Txt2ImgPanel: React.FC = () => {
               onChange={(e) => setPrompt(e.target.value)}
               variant="outlined"
               sx={{ mb: 3 }}
-              disabled={status === 'generating'}
+              disabled={isGenerateButtonDisabled}
             />
             
             {/* Batch count */}
@@ -240,7 +275,7 @@ const Txt2ImgPanel: React.FC = () => {
               marks
               min={1}
               max={10}
-              disabled={status === 'generating'}
+              disabled={isGenerateButtonDisabled}
               sx={{ mb: 3 }}
             />
           </Paper>
