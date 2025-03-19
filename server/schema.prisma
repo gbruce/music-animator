@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  username        String    @unique
+  password        String
+  resetToken      String?
+  resetTokenExpiry DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  projects        Project[]
+  images          Image[]
+}
+
+model Project {
+  id              String    @id @default(uuid())
+  name            String
+  bpm             Int       @default(120)
+  fps             Int       @default(24)
+  duration        Int       @default(60)
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks          Track[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Track {
+  id              String    @id @default(uuid())
+  name            String
+  startBeat       Int       @default(0)
+  durationBeats   Int       @default(16)
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  image1Id        String?
+  image1          Image?    @relation("TrackImage1", fields: [image1Id], references: [id], onDelete: SetNull)
+  image2Id        String?
+  image2          Image?    @relation("TrackImage2", fields: [image2Id], references: [id], onDelete: SetNull)
+  image3Id        String?
+  image3          Image?    @relation("TrackImage3", fields: [image3Id], references: [id], onDelete: SetNull)
+  image4Id        String?
+  image4          Image?    @relation("TrackImage4", fields: [image4Id], references: [id], onDelete: SetNull)
+  image5Id        String?
+  image5          Image?    @relation("TrackImage5", fields: [image5Id], references: [id], onDelete: SetNull)
+  image6Id        String?
+  image6          Image?    @relation("TrackImage6", fields: [image6Id], references: [id], onDelete: SetNull)
+  image7Id        String?
+  image7          Image?    @relation("TrackImage7", fields: [image7Id], references: [id], onDelete: SetNull)
+  image8Id        String?
+  image8          Image?    @relation("TrackImage8", fields: [image8Id], references: [id], onDelete: SetNull)
+  image9Id        String?
+  image9          Image?    @relation("TrackImage9", fields: [image9Id], references: [id], onDelete: SetNull)
+  image10Id       String?
+  image10         Image?    @relation("TrackImage10", fields: [image10Id], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([image1Id])
+  @@index([image2Id])
+  @@index([image3Id])
+  @@index([image4Id])
+  @@index([image5Id])
+  @@index([image6Id])
+  @@index([image7Id])
+  @@index([image8Id])
+  @@index([image9Id])
+  @@index([image10Id])
+}
+
+model Image {
+  id              String    @id @default(uuid())
+  identifier      String    @unique
+  filePath        String
+  height          Int
+  width           Int
+  fileSize        Int
+  imageType       String
+  filename        String
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadDate      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tracksAsImage1  Track[]   @relation("TrackImage1")
+  tracksAsImage2  Track[]   @relation("TrackImage2")
+  tracksAsImage3  Track[]   @relation("TrackImage3")
+  tracksAsImage4  Track[]   @relation("TrackImage4")
+  tracksAsImage5  Track[]   @relation("TrackImage5")
+  tracksAsImage6  Track[]   @relation("TrackImage6")
+  tracksAsImage7  Track[]   @relation("TrackImage7")
+  tracksAsImage8  Track[]   @relation("TrackImage8")
+  tracksAsImage9  Track[]   @relation("TrackImage9")
+  tracksAsImage10 Track[]   @relation("TrackImage10")
+
+  @@index([userId])
+  @@index([identifier])
+} 
