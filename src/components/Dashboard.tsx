@@ -5,6 +5,7 @@ import { useProjects } from '../contexts/ProjectContext';
 import { useTheme } from '../contexts/ThemeContext';
 import TimelineContainer from './TimelineContainer';
 import Images from './Images';
+import Txt2ImgPanel from './Txt2ImgPanel';
 import { 
   AppBar, 
   Box, 
@@ -35,11 +36,11 @@ import {
 } from '@mui/icons-material';
 
 interface DashboardProps {
-  activeTab: 'projects' | 'images';
+  activeTab: 'projects' | 'images' | 'txt2img';
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) => {
-  const [activeTab, setActiveTab] = useState<'projects' | 'images'>(initialActiveTab);
+  const [activeTab, setActiveTab] = useState<'projects' | 'images' | 'txt2img'>(initialActiveTab);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -62,10 +63,12 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     setActiveTab(initialActiveTab);
   }, [initialActiveTab]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images') => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images' | 'txt2img') => {
     setActiveTab(newValue);
     if (newValue === 'images') {
       navigate('/images');
+    } else if (newValue === 'txt2img') {
+      navigate('/txt2img');
     } else {
       navigate('/');
     }
@@ -174,14 +177,17 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
         >
           <Tab label="Projects" value="projects" />
           <Tab label="Images" value="images" />
+          <Tab label="Txt2Img" value="txt2img" />
         </Tabs>
       </AppBar>
 
       <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4 }}>
         {activeTab === 'projects' ? (
           <TimelineContainer />
-        ) : (
+        ) : activeTab === 'images' ? (
           <Images />
+        ) : (
+          <Txt2ImgPanel />
         )}
       </Container>
 

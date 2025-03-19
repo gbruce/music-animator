@@ -57,6 +57,14 @@ const App: React.FC = () => {
                     }
                   />
                   <Route
+                    path="/txt2img"
+                    element={
+                      <PrivateRoute>
+                        <Dashboard activeTab="txt2img" />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
                     path="/profile"
                     element={
                       <PrivateRoute>
