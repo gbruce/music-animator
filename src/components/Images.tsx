@@ -191,11 +191,13 @@ const Images: React.FC = () => {
 
       {/* Main content area with folder tree and images */}
       <div className={styles.imageContent}>
-        {/* Folder tree */}
-        <FolderTree 
-          onAddFolder={handleAddFolder}
-          onRenameFolder={handleRenameFolder}
-        />
+        {/* Folder tree in same container as drop zone for alignment */}
+        <div className={styles.leftColumn}>
+          <FolderTree 
+            onAddFolder={handleAddFolder}
+            onRenameFolder={handleRenameFolder}
+          />
+        </div>
         
         {/* Image grid section */}
         <div className={styles.contentPanel}>
@@ -205,7 +207,7 @@ const Images: React.FC = () => {
               className={!currentFolder ? styles.breadcrumbCurrent : styles.breadcrumbLink}
               onClick={() => navigateToBreadcrumb(null)}
             >
-              Library
+              All Images
             </span>
             
             {breadcrumbPath.map((folder, index) => (

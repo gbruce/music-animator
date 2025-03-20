@@ -3,6 +3,7 @@ import { Folder, imageApi } from '../services/api';
 import { useImages } from '../contexts/ImageContext';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useAuth } from '../contexts/AuthContext';
+import FolderItem from './FolderItem';
 
 // Fix for timeout ref
 type TimeoutRef = ReturnType<typeof setTimeout> | null;
@@ -252,167 +253,49 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder }) 
     }
   }, [folders, openFolders]);
 
-  // Recursive component for folder tree
-  const FolderItem = ({ folder, level = 0 }: { folder: Folder; level?: number }) => {
-    const isOpen = openFolders.has(folder.id);
-    const children = buildFolderHierarchy(folder.id);
-    const hasChildren = children.length > 0;
-    
-    const isSelected = currentFolder === folder.id;
-    const isDragTarget = dropTargetFolder === folder.id;
-    
-    // Folder icon based on open/closed state
-    const getFolderIcon = () => {
-      if (hasChildren) {
-        return isOpen ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 6l2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"></path>
-            <line x1="6" y1="14" x2="18" y2="14"></line>
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 6l2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"></path>
-          </svg>
-        );
-      } else {
-        return (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 6l2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"></path>
-          </svg>
-        );
-      }
-    };
-    
-    return (
-      <div>
-        <div
-          className={`${styles.folderItem} ${isSelected ? styles.folderItemSelected : ''} ${isDragTarget ? styles.draggingOver : ''}`}
-          onClick={() => handleFolderClick(folder.id)}
-          onDragOver={(e) => handleDragOver(e, folder.id)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, folder.id)}
-          style={{ paddingLeft: `${level * 16 + 8}px` }}
-        >
-          {hasChildren && (
-            <span 
-              className={styles.folderToggle} 
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFolder(folder.id, !isOpen);
-              }}
-            >
-              {isOpen ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              )}
-            </span>
-          )}
-          
-          <span 
-            className={styles.folderIcon}
-            draggable
-            onDragStart={(e) => handleDragStart(e, folder.id)}
-            onDragEnd={handleDragEnd}
-          >
-            {getFolderIcon()}
-          </span>
-          
-          <span className={styles.folderName}>
-            {folder.name}
-          </span>
-          
-          <div className={styles.folderActions}>
-            <button 
-              className={styles.folderActionButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRenameFolder(folder);
-              }}
-              aria-label="Rename folder"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-            </button>
-            
-            <button 
-              className={styles.folderActionButtonDanger}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm(`Are you sure you want to delete the folder "${folder.name}"? All images inside will be removed from the folder.`)) {
-                  deleteFolder(folder.id);
-                }
-              }}
-              aria-label="Delete folder"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        {isOpen && hasChildren && (
-          <div className={styles.folderChildren}>
-            {children.map((childFolder) => (
-              <FolderItem 
-                key={childFolder.id} 
-                folder={childFolder} 
-                level={level + 1} 
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div 
       className={styles.folderTreeContainer}
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleRootDrop}
     >
-      <div className={styles.sidebarHeader}>
-        <div 
-          className={`${styles.sidebarButton} ${!currentFolder ? styles.sidebarButtonActive : ''}`}
-          onClick={() => setCurrentFolder(null)}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-          Library
-        </div>
-      </div>
-      
       <div className={styles.folderTreeSection}>
-        <div className={styles.sectionTitle}>Folders</div>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTitle}>FOLDERS</div>
+          <button
+            className={styles.inlineFolderButton}
+            onClick={handleAddRootFolder}
+            aria-label="Add new folder"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
         <div className={styles.folderTree}>
           {rootFolders.map((folder) => (
-            <FolderItem key={folder.id} folder={folder} />
+            <FolderItem 
+              key={folder.id} 
+              folder={folder}
+              level={0}
+              openFolders={openFolders}
+              currentFolder={currentFolder}
+              dropTargetFolder={dropTargetFolder}
+              folders={folders}
+              toggleFolder={toggleFolder}
+              handleFolderClick={handleFolderClick}
+              handleDragStart={handleDragStart}
+              handleDragEnd={handleDragEnd}
+              handleDragOver={handleDragOver}
+              handleDragLeave={handleDragLeave}
+              handleDrop={handleDrop}
+              deleteFolder={deleteFolder}
+              onRenameFolder={onRenameFolder}
+            />
           ))}
         </div>
       </div>
-      
-      <button
-        className={styles.addFolderButton}
-        onClick={handleAddRootFolder}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          <line x1="12" y1="11" x2="12" y2="17"></line>
-          <line x1="9" y1="14" x2="15" y2="14"></line>
-        </svg>
-        New Folder
-      </button>
     </div>
   );
 };

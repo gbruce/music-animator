@@ -149,9 +149,11 @@ export const timelineStyles = {
     transition-all duration-200 hover:bg-gray-900`,
   
   // Folder tree styles
-  imageContent: `flex`,
+  imageContent: `flex gap-4`,
   
-  folderTreeContainer: `w-64 border-r border-gray-700 mr-4 overflow-y-auto max-h-[calc(100vh-300px)]`,
+  leftColumn: `w-64`,
+  
+  folderTreeContainer: `w-full overflow-y-auto max-h-[calc(100vh-300px)]`,
   
   folderTree: `py-2`,
   
@@ -188,7 +190,11 @@ export const timelineStyles = {
   
   folderTreeSection: `mb-4`,
   
-  sectionTitle: `text-xs font-semibold text-gray-500 px-3 mb-1 uppercase tracking-wider`,
+  sectionTitle: `text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider`,
+  
+  sectionHeader: `flex items-center justify-between mb-1`,
+  
+  inlineFolderButton: `text-gray-400 hover:text-gray-200 p-1 rounded-full hover:bg-gray-700/50 transition-colors`,
   
   contentPanel: `flex-1 overflow-hidden`,
   
