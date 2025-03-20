@@ -148,6 +148,67 @@ export const timelineStyles = {
     flex items-center justify-center text-gray-400 hover:text-red-400 
     transition-all duration-200 hover:bg-gray-900`,
   
+  // Folder tree styles
+  imageContent: `flex`,
+  
+  folderTreeContainer: `w-64 border-r border-gray-700 mr-4 overflow-y-auto max-h-[calc(100vh-300px)]`,
+  
+  folderTree: `py-2`,
+  
+  folderItem: `flex items-center py-1 px-2 text-gray-300 hover:bg-gray-700/50 cursor-pointer
+    transition-colors rounded-md mb-1 group`,
+    
+  folderItemSelected: `bg-blue-500/20 text-blue-400`,
+  
+  folderName: `ml-2 text-sm truncate flex-grow`,
+  
+  folderIcon: `text-gray-400 transition-colors`,
+  
+  folderActions: `opacity-0 group-hover:opacity-100 flex space-x-1`,
+  
+  folderActionButton: `text-gray-400 hover:text-gray-200 p-1`,
+  
+  folderActionButtonDanger: `text-gray-400 hover:text-red-400 p-1`,
+  
+  addFolderButton: `flex items-center justify-center text-sm text-gray-400 py-2 px-3 
+    hover:bg-gray-700/50 hover:text-gray-200 transition-colors rounded-md w-full mt-1`,
+  
+  folderChildren: `ml-4 pl-2 border-l border-gray-700 mt-1`,
+  
+  draggingOver: `bg-blue-500/20 border border-blue-500/50`,
+  
+  contentPanel: `flex-1 overflow-hidden`,
+  
+  breadcrumbs: `flex items-center text-sm text-gray-400 mb-4 flex-wrap`,
+  
+  breadcrumbsSeparator: `mx-2 text-gray-600`,
+  
+  breadcrumbLink: `hover:text-blue-400 cursor-pointer`,
+  
+  breadcrumbCurrent: `text-gray-200`,
+  
+  folderIndicator: `text-gray-400 text-sm mb-2`,
+  
+  // Modal styles
+  modal: `fixed inset-0 flex items-center justify-center z-50 bg-black/70`,
+  
+  modalContent: `bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4`,
+  
+  modalHeader: `text-lg font-medium text-gray-200 mb-4`,
+  
+  modalForm: `space-y-4`,
+  
+  modalLabel: `block text-sm font-medium text-gray-300 mb-1`,
+  
+  modalInput: `w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-gray-200
+    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`,
+  
+  modalActions: `flex justify-end space-x-3 mt-6`,
+  
+  modalCancel: `px-4 py-2 bg-gray-700 text-gray-200 rounded-md hover:bg-gray-600 transition-colors`,
+  
+  modalSubmit: `px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors`,
+  
   // Tab navigation styles
   tabContainer: `flex mb-6 border-b border-gray-700`,
   

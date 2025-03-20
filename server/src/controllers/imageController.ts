@@ -5,6 +5,8 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { promisify } from 'util';
 import sizeOf from 'image-size';
+import crypto from 'crypto';
+import sharp from 'sharp';
 
 const prisma = new PrismaClient();
 const mkdir = promisify(fs.mkdir);
@@ -47,71 +49,79 @@ initializeStorage().catch(console.error);
 
 export const imageController = {
   // Upload a new image
-  async uploadImage(req: Request, res: Response) {
+  async uploadImage(req: Request, res: Response): Promise<void> {
     try {
-      console.log('Upload image handler called');
       if (!req.file) {
-        return res.status(400).json({ error: 'No image file provided' });
+        res.status(400).json({ error: 'No image file provided' });
+        return;
       }
 
-      if (!req.user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
-      const { buffer, originalname, mimetype } = req.file;
-      const userId = req.user.id;
+      // Generate a unique identifier for the image
+      const identifier = crypto.randomBytes(16).toString('hex');
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      const filename = `${identifier}${fileExt}`;
+      const filePath = path.join(UPLOAD_DIR, filename);
+
+      // Get image dimensions using sharp
+      const metadata = await sharp(req.file.buffer).metadata();
+      const width = metadata.width || 0;
+      const height = metadata.height || 0;
+
+      // Save the file to disk
+      fs.writeFileSync(filePath, req.file.buffer);
+
+      // Extract folder ID from request if present
+      const folderId = req.body.folderId || null;
       
-      console.log(`Processing image: ${originalname} (${buffer.length} bytes)`);
-
-      // Create user-specific directory
-      const userDir = path.join(UPLOAD_DIR, userId);
-      if (!fs.existsSync(userDir)) {
-        await mkdir(userDir, { recursive: true });
+      // Check if folder exists and belongs to the user (if folderId is provided)
+      if (folderId) {
+        const folder = await prisma.folder.findUnique({
+          where: { id: folderId }
+        });
+        
+        if (!folder) {
+          res.status(404).json({ error: 'Folder not found' });
+          return;
+        }
+        
+        if (folder.userId !== userId) {
+          res.status(403).json({ error: 'Access denied to folder' });
+          return;
+        }
       }
 
-      // Generate unique identifier and filename
-      const identifier = uuidv4();
-      const extension = path.extname(originalname);
-      const safeFilename = `${identifier}${extension}`;
-      const filePath = path.join(userDir, safeFilename);
-
-      console.log('Getting image dimensions...');
-      let dimensions;
-      try {
-        // Use synchronous version to avoid callback issues
-        dimensions = sizeOf(buffer);
-        console.log('Image dimensions:', dimensions);
-      } catch (err) {
-        console.error('Error getting image dimensions:', err);
-        return res.status(400).json({ error: 'Could not determine image dimensions' });
-      }
-      
-      if (!dimensions || !dimensions.width || !dimensions.height) {
-        return res.status(400).json({ error: 'Invalid image file' });
-      }
-
-      // Write file to disk
-      console.log('Writing file to disk...');
-      await writeFile(filePath, buffer);
-      console.log('File written successfully');
-
-      // Create image record in database
-      console.log('Creating database record...');
+      // Create a record in the database
       const image = await prisma.image.create({
         data: {
           identifier,
           filePath,
-          height: dimensions.height,
-          width: dimensions.width,
-          fileSize: buffer.length,
-          imageType: mimetype,
-          filename: originalname,
-          userId
+          height,
+          width,
+          fileSize: req.file.size,
+          imageType: req.file.mimetype,
+          filename: req.file.originalname,
+          userId,
+          folderId
         }
       });
-      console.log('Database record created');
 
-      res.status(201).json(image);
+      res.status(201).json({
+        id: image.id,
+        identifier: image.identifier,
+        filename: image.filename,
+        width: image.width,
+        height: image.height,
+        fileSize: image.fileSize,
+        imageType: image.imageType,
+        uploadDate: image.uploadDate,
+        folderId: image.folderId
+      });
     } catch (error) {
       console.error('Error uploading image:', error);
       res.status(500).json({ error: 'Failed to upload image' });
@@ -119,84 +129,155 @@ export const imageController = {
   },
 
   // Get all images for the current user
-  async getUserImages(req: Request, res: Response) {
+  async getUserImages(req: Request, res: Response): Promise<void> {
     try {
-      console.log('getUserImages called');
-      if (!req.user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
-      const userId = req.user.id;
-      console.log('Fetching images for user:', userId);
+      // Get the optional folderId query parameter
+      const folderId = req.query.folderId as string | undefined;
       
       const images = await prisma.image.findMany({
-        where: { userId }
+        where: {
+          userId,
+          folderId: folderId || null
+        },
+        orderBy: {
+          uploadDate: 'desc'
+        }
       });
-      
-      console.log(`Found ${images.length} images`);
+
       res.json(images);
     } catch (error) {
-      console.error('Error fetching user images:', error);
-      res.status(500).json({ error: 'Failed to fetch images' });
+      console.error('Error getting user images:', error);
+      res.status(500).json({ error: 'Failed to get user images' });
     }
   },
 
   // Get image by identifier
-  async getImageByIdentifier(req: Request, res: Response) {
+  async getImageByIdentifier(req: Request, res: Response): Promise<void> {
     try {
       const { identifier } = req.params;
-      const image = await prisma.image.findUnique({
-        where: { identifier }
-      });
-      
-      if (!image) {
-        return res.status(404).json({ error: 'Image not found' });
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
-      
+
+      const image = await prisma.image.findFirst({
+        where: {
+          identifier,
+          userId
+        }
+      });
+
+      if (!image) {
+        res.status(404).json({ error: 'Image not found' });
+        return;
+      }
+
       res.json(image);
     } catch (error) {
-      console.error('Error fetching image:', error);
-      res.status(500).json({ error: 'Failed to fetch image' });
+      console.error('Error getting image:', error);
+      res.status(500).json({ error: 'Failed to get image' });
     }
   },
 
   // Delete an image
-  async deleteImage(req: Request, res: Response) {
+  async deleteImage(req: Request, res: Response): Promise<void> {
     try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+      const { identifier } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
       }
 
-      const { identifier } = req.params;
-      const userId = req.user.id;
-      
-      // Check if image exists and belongs to user
-      const image = await prisma.image.findUnique({
-        where: { identifier }
+      // Find the image to get the file path
+      const image = await prisma.image.findFirst({
+        where: {
+          identifier,
+          userId
+        }
       });
-      
+
       if (!image) {
-        return res.status(404).json({ error: 'Image not found' });
+        res.status(404).json({ error: 'Image not found' });
+        return;
       }
-      
-      if (image.userId !== userId) {
-        return res.status(403).json({ error: 'Not authorized to delete this image' });
-      }
-      
-      // Delete file from disk
-      if (fs.existsSync(image.filePath)) {
-        await unlink(image.filePath);
-      }
-      
-      // Remove from database
+
+      // Delete the database record
       await prisma.image.delete({
-        where: { identifier }
+        where: {
+          id: image.id
+        }
       });
-      
-      res.status(204).end();
+
+      // Delete the file from disk
+      if (fs.existsSync(image.filePath)) {
+        fs.unlinkSync(image.filePath);
+      }
+
+      res.status(204).send();
     } catch (error) {
       console.error('Error deleting image:', error);
       res.status(500).json({ error: 'Failed to delete image' });
+    }
+  },
+  
+  // Move images to a folder
+  async moveImagesToFolder(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      const { imageIds, folderId } = req.body;
+      
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+      
+      if (!Array.isArray(imageIds) || imageIds.length === 0) {
+        res.status(400).json({ error: 'Image IDs are required' });
+        return;
+      }
+      
+      // Check if folder exists and belongs to the user (if not null)
+      if (folderId) {
+        const folder = await prisma.folder.findUnique({
+          where: { id: folderId }
+        });
+        
+        if (!folder) {
+          res.status(404).json({ error: 'Folder not found' });
+          return;
+        }
+        
+        if (folder.userId !== userId) {
+          res.status(403).json({ error: 'Access denied to folder' });
+          return;
+        }
+      }
+      
+      // Update all the specified images
+      await prisma.image.updateMany({
+        where: {
+          id: { in: imageIds },
+          userId
+        },
+        data: {
+          folderId: folderId || null
+        }
+      });
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error moving images to folder:', error);
+      res.status(500).json({ error: 'Failed to move images' });
     }
   }
 }; 

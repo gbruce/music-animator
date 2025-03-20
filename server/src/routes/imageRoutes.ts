@@ -36,4 +36,7 @@ router.get('/:identifier', imageController.getImageByIdentifier);
 // Delete an image
 router.delete('/:identifier', imageController.deleteImage);
 
+// Move images to a folder
+router.post('/move', imageController.moveImagesToFolder);
+
 export default router; 

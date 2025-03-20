@@ -1,23 +1,52 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useImages } from '../contexts/ImageContext';
-import { imageApi } from '../services/api';
+import { Folder } from '../services/api';
+import { serverApi } from '../services/mockApi';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useAuth } from '../contexts/AuthContext';
+import FolderTree from './FolderTree';
+import FolderModal from './FolderModal';
 
 const Images: React.FC = () => {
-  const { images, loading, error, uploadImage, deleteImage } = useImages();
+  const { 
+    images, 
+    loading, 
+    error, 
+    uploadImage, 
+    deleteImage, 
+    currentFolder, 
+    setCurrentFolder,
+    folders,
+    createFolder,
+    renameFolder,
+    getCurrentFolderImages,
+    getBreadcrumbPath
+  } = useImages();
   const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Modal states
+  const [folderModalOpen, setFolderModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'rename'>('create');
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+
+  // Get only images for the current folder
+  const currentFolderImages = getCurrentFolderImages();
+  
+  // Get breadcrumb path
+  const breadcrumbPath = getBreadcrumbPath(currentFolder);
 
   // Log component state
   useEffect(() => {
     console.log('Images component: User', user ? 'exists' : 'not logged in');
     console.log('Images component: Images count', images.length);
+    console.log('Images component: Current folder', currentFolder);
+    console.log('Images component: Folders count', folders.length);
     console.log('Images component: Loading', loading);
     console.log('Images component: Error', error);
-  }, [user, images, loading, error]);
+  }, [user, images, folders, currentFolder, loading, error]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -44,7 +73,7 @@ const Images: React.FC = () => {
       return;
     }
 
-    // Upload each image
+    // Upload each image to the current folder
     try {
       await Promise.all(imageFiles.map(file => uploadImage(file)));
     } catch (err: any) {
@@ -77,9 +106,49 @@ const Images: React.FC = () => {
       fileInputRef.current.click();
     }
   };
+  
+  const handleAddFolder = () => {
+    setModalMode('create');
+    setSelectedFolder(null);
+    setFolderModalOpen(true);
+  };
+  
+  const handleRenameFolder = (folder: Folder) => {
+    setModalMode('rename');
+    setSelectedFolder(folder);
+    setFolderModalOpen(true);
+  };
+  
+  const handleFolderModalSubmit = async (name: string) => {
+    try {
+      if (modalMode === 'create') {
+        await createFolder(name);
+      } else if (modalMode === 'rename' && selectedFolder) {
+        await renameFolder(selectedFolder.id, name);
+      }
+    } catch (err: any) {
+      console.error(
+        modalMode === 'create' ? 'Failed to create folder:' : 'Failed to rename folder:',
+        err
+      );
+    }
+  };
+  
+  const navigateToBreadcrumb = (folderId: string | null) => {
+    setCurrentFolder(folderId);
+  };
 
   return (
     <div>
+      {/* Folder Modal */}
+      <FolderModal
+        isOpen={folderModalOpen}
+        onClose={() => setFolderModalOpen(false)}
+        onSubmit={handleFolderModalSubmit}
+        title={modalMode === 'create' ? 'Create New Folder' : 'Rename Folder'}
+        initialName={selectedFolder?.name}
+      />
+    
       {/* Upload area */}
       <div
         className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
@@ -119,56 +188,105 @@ const Images: React.FC = () => {
 
       {uploadError && <div className={styles.errorMessage}>{uploadError}</div>}
 
-      {/* Image grid */}
-      {loading ? (
-        <div className={styles.loadingContainer}>Loading images...</div>
-      ) : (
-        <div className={styles.imageGrid}>
-          {images.length === 0 ? (
-            <div className={styles.noImages}>No images uploaded yet</div>
-          ) : (
-            images.map(image => (
-              <div key={image.identifier} className={styles.imageCard}>
-                <img
-                  src={imageApi.getImageUrl(image.identifier)}
-                  alt={image.filename}
-                  className={styles.imagePreview}
-                />
-                <div className={styles.imageInfo}>
-                  <div className={styles.imageName}>{image.filename}</div>
-                  <div className={styles.imageDetails}>
-                    {Math.round(image.width)} x {Math.round(image.height)} px
-                    <span className={styles.imageSeparator}>•</span>
-                    {formatFileSize(image.fileSize)}
-                  </div>
-                </div>
-                <button
-                  className={styles.imageDeleteButton}
-                  onClick={() => handleDeleteImage(image.identifier)}
-                  aria-label="Delete image"
+      {/* Main content area with folder tree and images */}
+      <div className={styles.imageContent}>
+        {/* Folder tree */}
+        <FolderTree 
+          onAddFolder={handleAddFolder}
+          onRenameFolder={handleRenameFolder}
+        />
+        
+        {/* Image grid section */}
+        <div className={styles.contentPanel}>
+          {/* Breadcrumbs navigation */}
+          <div className={styles.breadcrumbs}>
+            <span 
+              className={!currentFolder ? styles.breadcrumbCurrent : styles.breadcrumbLink}
+              onClick={() => navigateToBreadcrumb(null)}
+            >
+              All Images
+            </span>
+            
+            {breadcrumbPath.map((folder, index) => (
+              <React.Fragment key={folder.id}>
+                <span className={styles.breadcrumbsSeparator}>/</span>
+                <span 
+                  className={
+                    index === breadcrumbPath.length - 1
+                      ? styles.breadcrumbCurrent
+                      : styles.breadcrumbLink
+                  }
+                  onClick={() => navigateToBreadcrumb(folder.id)}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                  </svg>
-                </button>
-              </div>
-            ))
+                  {folder.name}
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+          
+          {/* Folder indicator */}
+          <div className={styles.folderIndicator}>
+            {currentFolder 
+              ? `Viewing images in "${breadcrumbPath[breadcrumbPath.length - 1]?.name || 'Unknown folder'}"` 
+              : 'Viewing all unorganized images'}
+          </div>
+          
+          {/* Image grid */}
+          {loading ? (
+            <div className={styles.loadingContainer}>Loading images...</div>
+          ) : (
+            <div className={styles.imageGrid}>
+              {currentFolderImages.length === 0 ? (
+                <div className={styles.noImages}>
+                  {currentFolder 
+                    ? 'No images in this folder' 
+                    : 'No unorganized images'}
+                </div>
+              ) : (
+                currentFolderImages.map(image => (
+                  <div key={image.identifier} className={styles.imageCard}>
+                    <img
+                      src={serverApi.getImageUrl(image.identifier)}
+                      alt={image.filename}
+                      className={styles.imagePreview}
+                    />
+                    <div className={styles.imageInfo}>
+                      <div className={styles.imageName}>{image.filename}</div>
+                      <div className={styles.imageDetails}>
+                        {Math.round(image.width)} x {Math.round(image.height)} px
+                        <span className={styles.imageSeparator}>•</span>
+                        {formatFileSize(image.fileSize)}
+                      </div>
+                    </div>
+                    <button
+                      className={styles.imageDeleteButton}
+                      onClick={() => handleDeleteImage(image.identifier)}
+                      aria-label="Delete image"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                      </svg>
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

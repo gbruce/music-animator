@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes';
 import projectRoutes from './routes/projectRoutes';
 import trackRoutes from './routes/trackRoutes';
 import imageRoutes from './routes/imageRoutes';
+import folderRoutes from './routes/folderRoutes';
 import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
@@ -53,6 +54,7 @@ app.get('/images/:identifier', async (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/folders', folderRoutes);
 app.use('/api', trackRoutes); // Track routes include their own prefixes
 
 app.listen(port, () => {
