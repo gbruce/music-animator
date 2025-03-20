@@ -28,7 +28,8 @@ const WorkflowStatusDisplay: React.FC<WorkflowStatusDisplayProps> = ({
         color={
           status === 'idle' ? 'text.secondary' : 
           status === 'loading' || status === 'processing' ? 'info.main' :
-          status === 'success' ? 'success.main' : 'error.main'
+          status === 'success' ? 'success.main' : 
+          status === 'cancelled' ? 'warning.main' : 'error.main'
         }
       >
         {message || (status === 'idle' ? 'Ready to generate' : '')}

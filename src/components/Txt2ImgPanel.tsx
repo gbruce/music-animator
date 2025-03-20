@@ -14,8 +14,9 @@ import {
   InputAdornment,
   ToggleButton,
   ToggleButtonGroup,
+  ButtonGroup,
 } from '@mui/material';
-import { useComfyUI } from '../contexts/ComfyUIContext';
+import { useComfyUI, StatusMessageModifier } from '../contexts/ComfyUIContext';
 import WorkflowStatusDisplay from './WorkflowStatusDisplay';
 import flux from './flux-workflow.json';
 import { createLogger } from '../utils/logger';
@@ -31,7 +32,6 @@ type OrientationType = 'portrait' | 'landscape';
 
 const Txt2ImgPanel: React.FC = () => {
   // State variables
-  const [seed, setSeed] = useState<number>(0);
   const [orientation, setOrientation] = useState<OrientationType>('portrait');
   const [prompt, setPrompt] = useState<string>("a rabbit in a field");
   const [batchCount, setBatchCount] = useState<number>(1);
@@ -42,22 +42,15 @@ const Txt2ImgPanel: React.FC = () => {
   const { width, height } = orientation === 'portrait' ? PORTRAIT_RESOLUTION : LANDSCAPE_RESOLUTION;
   
   // Use the global ComfyUI context
-  const { status, statusMessage, progress, runWorkflow, resetStatus } = useComfyUI();
+  const { status, statusMessage, progress, runWorkflow, cancelWorkflow, resetStatus } = useComfyUI();
 
-  // Reset generation state when status changes to success or error
+  // Reset generation state when status changes to success, error, or cancelled
   useEffect(() => {
-    if (status === 'success' || status === 'error') {
+    if (status === 'success' || status === 'error' || status === 'cancelled') {
       logger.log(`Workflow status changed to: ${status}`);
       setIsGenerating(false);
     }
   }, [status]);
-
-  // Generate random seed function
-  const generateRandomSeed = () => {
-    const randomSeed = Math.floor(Math.random() * 999999999);
-    logger.log(`Generated random seed: ${randomSeed}`);
-    setSeed(randomSeed);
-  };
 
   // Handle orientation change
   const handleOrientationChange = (_event: React.MouseEvent<HTMLElement>, newOrientation: OrientationType | null) => {
@@ -66,6 +59,12 @@ const Txt2ImgPanel: React.FC = () => {
       setOrientation(newOrientation);
     }
   };
+
+  // Handle cancel button click
+  const handleCancel = useCallback(() => {
+    logger.log('User clicked cancel button');
+    cancelWorkflow();
+  }, [cancelWorkflow]);
 
   // Handle generate button click
   const handleGenerate = useCallback(async () => {
@@ -87,8 +86,8 @@ const Txt2ImgPanel: React.FC = () => {
       const workflowCopy = JSON.parse(JSON.stringify(flux));
       
       // Update the workflow with our parameters
-      // Set the seed
-      const seedValue = seed === 0 ? Math.floor(Math.random() * 999999999) : seed;
+      // Set random seed
+      const seedValue = Math.floor(Math.random() * 999999999);
       workflowCopy[25].inputs.noise_seed = seedValue;
       logger.log(`Using seed: ${seedValue}`);
       
@@ -101,40 +100,68 @@ const Txt2ImgPanel: React.FC = () => {
       workflowCopy[33].inputs.size_selected = resolutionSetting;
       logger.log(`Using resolution: ${resolutionSetting}`);
       
-      // Set batch size if supported
+      // Set batch size to 1 for sequential processing
       if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
-        workflowCopy[27].inputs.batch_size = batchCount;
-        logger.log(`Using batch count: ${batchCount}`);
+        workflowCopy[27].inputs.batch_size = 1;
+        logger.log(`Set batch size to 1 for sequential processing. Will generate ${batchCount} images in series.`);
       }
       
       try {
-        // Run the workflow and wait for completion
-        logger.log('Sending workflow to ComfyUI');
-        const response = await runWorkflow(workflowCopy);
-        
-        // Process the result when workflow completes
-        logger.log('Workflow completed successfully');
-        
-        // Process images from the response
-        if (response && response.images) {
-          logger.log(`Received ${response.images.length} images from workflow`);
+        // Process images one by one
+        for (let i = 0; i < batchCount; i++) {
           
-          for (const image of response.images) {
-            if(image.type === "url"){
-              const { data: url } = image;
-              logger.log(`Fetching image from URL: ${url}`);
-              const res = await fetch(url);
-              const blob = await res.blob();
-              const imageUrl = URL.createObjectURL(blob);
-              setGeneratedImages(prev => [...prev, imageUrl]);
-            }
+          logger.log(`Generating image ${i+1} of ${batchCount}`);
+          
+          // Update seed for each iteration
+          const newSeed = Math.floor(Math.random() * 999999999);
+          workflowCopy[25].inputs.noise_seed = newSeed;
+          logger.log(`Using new random seed for image ${i+1}: ${newSeed}`);
+          
+          // Run the workflow and wait for completion
+          logger.log(`Sending workflow to ComfyUI for image ${i+1}`);
+          
+          // Create a message modifier function to add the image count prefix
+          const imageCountMessageModifier = (message: string) => {
+            return `[Image ${i+1}/${batchCount}] ${message}`;
+          };
+          
+          // Run the workflow with the message modifier
+          const response = await runWorkflow(workflowCopy, undefined, imageCountMessageModifier);
+          
+          // If the response is null, it means the generation was cancelled
+          if (response === null) {
+            logger.log('Generation was cancelled during workflow execution');
+            break;
           }
-          logger.log('All images processed and added to the gallery');
-        } else {
-          // Fallback to placeholder for now
-          logger.warn('No images received from workflow, using placeholder');
-          const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now()}`;
-          setGeneratedImages(prev => [...prev, placeholderImageUrl]);
+          
+          // Process the result when workflow completes
+          logger.log(`Workflow for image ${i+1} completed successfully`);
+          
+          // Process image from the response
+          if (response && response.images && response.images.length > 0) {
+            logger.log(`Processing image ${i+1}`);
+
+            for (const image of response.images) {
+              if (image.type === "url") {
+                const { data: url } = image;
+                logger.log(`Fetching image ${i+1} from URL: ${url}`);
+                const res = await fetch(url);
+                const blob = await res.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                setGeneratedImages(prev => [...prev, imageUrl]);
+                logger.log(`Image ${i+1} added to gallery`);
+              }
+            }
+          } else {
+            // Fallback to placeholder
+            logger.warn(`No image data received for image ${i+1}, using placeholder`);
+            const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now() + i}`;
+            setGeneratedImages(prev => [...prev, placeholderImageUrl]);
+          }
+        }
+        
+        if (status !== 'cancelled') {
+          logger.log(`All ${batchCount} images have been generated and added to the gallery`);
         }
       } catch (error) {
         logger.error('Error processing workflow', error);
@@ -147,7 +174,7 @@ const Txt2ImgPanel: React.FC = () => {
       logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, prompt, runWorkflow, seed, width, isGenerating, resetStatus, orientation]);
+  }, [batchCount, height, prompt, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow]);
 
   // Log component mounted
   useEffect(() => {
@@ -158,7 +185,10 @@ const Txt2ImgPanel: React.FC = () => {
   }, []);
 
   // Determine if the generate button should be disabled
-  const isGenerateButtonDisabled = status === 'loading' || status === 'processing' || isGenerating;
+  const isGenerateButtonDisabled = status === 'loading' || status === 'processing';
+
+  // Determine if the cancel button should be shown
+  const shouldShowCancelButton = status === 'loading' || status === 'processing';
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
@@ -241,39 +271,33 @@ const Txt2ImgPanel: React.FC = () => {
               progress={progress} 
             />
             
-            {/* Generate button */}
-            <Button 
-              variant="contained" 
-              fullWidth 
-              onClick={handleGenerate}
-              disabled={isGenerateButtonDisabled}
-              sx={{ mb: 3, mt: 2 }}
-            >
-              Generate
-            </Button>
-            
-            {/* Seed input */}
-            <FormControl fullWidth variant="outlined" sx={{ mb: 3 }}>
-              <InputLabel htmlFor="seed-input">Seed (0 for random)</InputLabel>
-              <OutlinedInput
-                id="seed-input"
-                type="number"
-                value={seed}
-                onChange={(e) => setSeed(Number(e.target.value))}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <Button 
-                      size="small" 
-                      onClick={generateRandomSeed}
-                      disabled={isGenerateButtonDisabled}
-                    >
-                      Random
-                    </Button>
-                  </InputAdornment>
-                }
-                label="Seed (0 for random)"
-              />
-            </FormControl>
+            {/* Generate/Cancel buttons */}
+            {shouldShowCancelButton ? (
+              <ButtonGroup fullWidth variant="contained" sx={{ mb: 3, mt: 2 }}>
+                <Button 
+                  disabled={true}
+                  sx={{ opacity: 0.5 }}
+                >
+                  Generate
+                </Button>
+                <Button 
+                  color="error"
+                  onClick={handleCancel}
+                >
+                  Cancel
+                </Button>
+              </ButtonGroup>
+            ) : (
+              <Button 
+                variant="contained" 
+                fullWidth 
+                onClick={handleGenerate}
+                disabled={isGenerateButtonDisabled}
+                sx={{ mb: 3, mt: 2 }}
+              >
+                Generate
+              </Button>
+            )}
             
             {/* Resolution orientation toggle */}
             <Box sx={{ mb: 3 }}>
@@ -326,7 +350,7 @@ const Txt2ImgPanel: React.FC = () => {
               step={1}
               marks
               min={1}
-              max={10}
+              max={20}
               disabled={isGenerateButtonDisabled}
               sx={{ mb: 3 }}
             />
