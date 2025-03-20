@@ -125,6 +125,16 @@ export interface Image {
   uploadDate: string;
   filename: string;
   userId: string;
+  folderId?: string | null;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 const api = axios.create({
@@ -231,11 +241,16 @@ export const trackApi = {
 };
 
 export const imageApi = {
-  uploadImage: async (file: File): Promise<Image> => {
+  uploadImage: async (file: File, folderId?: string): Promise<Image> => {
     try {
       console.log('Uploading image:', file.name);
       const formData = new FormData();
       formData.append('image', file);
+      
+      // Add folderId to the form data if provided
+      if (folderId) {
+        formData.append('folderId', folderId);
+      }
       
       // Create a custom config for form data
       const config = {
@@ -286,6 +301,22 @@ export const imageApi = {
     }
   },
   
+  // Get images in a specific folder
+  getFolderImages: async (folderId?: string): Promise<Image[]> => {
+    try {
+      let url = '/images';
+      if (folderId) {
+        url = `/folders/${folderId}/images`;
+      }
+      
+      const response = await api.get<Image[]>(url);
+      return response.data;
+    } catch (error) {
+      console.error('Get folder images error:', error);
+      throw error;
+    }
+  },
+  
   getImageByIdentifier: async (identifier: string): Promise<Image> => {
     const response = await api.get<Image>(`/images/${identifier}`);
     return response.data;
@@ -299,5 +330,63 @@ export const imageApi = {
     // Return the direct URL to the image using the identifier
     console.log(`Creating image URL for identifier: ${identifier}`);
     return `${API_URL.replace('/api', '')}/images/${identifier}`;
+  },
+
+  getFolders: async (): Promise<Folder[]> => {
+    try {
+      const response = await api.get<Folder[]>('/folders');
+      return response.data;
+    } catch (error) {
+      console.error('Get folders error:', error);
+      throw error;
+    }
+  },
+
+  createFolder: async (name: string, parentId?: string): Promise<Folder> => {
+    try {
+      const response = await api.post<Folder>('/folders', { name, parentId });
+      return response.data;
+    } catch (error) {
+      console.error('Create folder error:', error);
+      throw error;
+    }
+  },
+
+  renameFolder: async (folderId: string, newName: string): Promise<Folder> => {
+    try {
+      const response = await api.put<Folder>(`/folders/${folderId}`, { name: newName });
+      return response.data;
+    } catch (error) {
+      console.error('Rename folder error:', error);
+      throw error;
+    }
+  },
+
+  deleteFolder: async (folderId: string): Promise<void> => {
+    try {
+      await api.delete(`/folders/${folderId}`);
+    } catch (error) {
+      console.error('Delete folder error:', error);
+      throw error;
+    }
+  },
+
+  moveFolder: async (folderId: string, newParentId?: string): Promise<Folder> => {
+    try {
+      const response = await api.put<Folder>(`/folders/${folderId}/move`, { parentId: newParentId });
+      return response.data;
+    } catch (error) {
+      console.error('Move folder error:', error);
+      throw error;
+    }
+  },
+
+  moveImagesToFolder: async (imageIds: string[], folderId?: string): Promise<void> => {
+    try {
+      await api.post('/images/move', { imageIds, folderId });
+    } catch (error) {
+      console.error('Move images error:', error);
+      throw error;
+    }
   }
 }; 
