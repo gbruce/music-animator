@@ -373,7 +373,7 @@ export const imageApi = {
 
   moveFolder: async (folderId: string, newParentId?: string): Promise<Folder> => {
     try {
-      const response = await api.put<Folder>(`/folders/${folderId}/move`, { parentId: newParentId });
+      const response = await api.patch<Folder>(`/folders/${folderId}/move`, { parentId: newParentId });
       return response.data;
     } catch (error) {
       console.error('Move folder error:', error);
@@ -383,7 +383,7 @@ export const imageApi = {
 
   moveImagesToFolder: async (imageIds: string[], folderId?: string): Promise<void> => {
     try {
-      await api.post('/images/move', { imageIds, folderId });
+      await api.patch('/images/move', { imageIds, folderId });
     } catch (error) {
       console.error('Move images error:', error);
       throw error;

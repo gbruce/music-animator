@@ -162,7 +162,9 @@ export const timelineStyles = {
   
   folderName: `ml-2 text-sm truncate flex-grow`,
   
-  folderIcon: `text-gray-400 transition-colors`,
+  folderIcon: `text-gray-400 transition-colors cursor-grab hover:text-blue-400 hover:scale-110 transform duration-150`,
+  
+  folderToggle: `mr-1 text-gray-500 flex items-center justify-center w-4 h-4`,
   
   folderActions: `opacity-0 group-hover:opacity-100 flex space-x-1`,
   
@@ -176,6 +178,17 @@ export const timelineStyles = {
   folderChildren: `ml-4 pl-2 border-l border-gray-700 mt-1`,
   
   draggingOver: `bg-blue-500/20 border border-blue-500/50`,
+  
+  sidebarHeader: `border-b border-gray-700 pb-2 mb-2`,
+  
+  sidebarButton: `flex items-center gap-2 py-1 px-2 text-gray-300 hover:bg-gray-700/50 
+    transition-colors rounded-md mb-1 text-sm font-medium cursor-pointer`,
+    
+  sidebarButtonActive: `bg-blue-500/20 text-blue-400`,
+  
+  folderTreeSection: `mb-4`,
+  
+  sectionTitle: `text-xs font-semibold text-gray-500 px-3 mb-1 uppercase tracking-wider`,
   
   contentPanel: `flex-1 overflow-hidden`,
   

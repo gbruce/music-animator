@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useImages } from '../contexts/ImageContext';
-import { Folder } from '../services/api';
-import { serverApi } from '../services/mockApi';
+import { Folder, imageApi } from '../services/api';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { useAuth } from '../contexts/AuthContext';
 import FolderTree from './FolderTree';
@@ -10,17 +9,19 @@ import FolderModal from './FolderModal';
 const Images: React.FC = () => {
   const { 
     images, 
-    loading, 
+    folders,
+    currentFolder, 
+    loadingImages,
+    loadingFolders,
     error, 
     uploadImage, 
     deleteImage, 
-    currentFolder, 
     setCurrentFolder,
-    folders,
     createFolder,
     renameFolder,
     getCurrentFolderImages,
-    getBreadcrumbPath
+    getBreadcrumbPath,
+    getImageUrl
   } = useImages();
   const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
@@ -44,9 +45,9 @@ const Images: React.FC = () => {
     console.log('Images component: Images count', images.length);
     console.log('Images component: Current folder', currentFolder);
     console.log('Images component: Folders count', folders.length);
-    console.log('Images component: Loading', loading);
+    console.log('Images component: Loading', loadingImages);
     console.log('Images component: Error', error);
-  }, [user, images, folders, currentFolder, loading, error]);
+  }, [user, images, folders, currentFolder, loadingImages, error]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -204,7 +205,7 @@ const Images: React.FC = () => {
               className={!currentFolder ? styles.breadcrumbCurrent : styles.breadcrumbLink}
               onClick={() => navigateToBreadcrumb(null)}
             >
-              All Images
+              Library
             </span>
             
             {breadcrumbPath.map((folder, index) => (
@@ -232,7 +233,7 @@ const Images: React.FC = () => {
           </div>
           
           {/* Image grid */}
-          {loading ? (
+          {loadingImages ? (
             <div className={styles.loadingContainer}>Loading images...</div>
           ) : (
             <div className={styles.imageGrid}>
@@ -246,7 +247,7 @@ const Images: React.FC = () => {
                 currentFolderImages.map(image => (
                   <div key={image.identifier} className={styles.imageCard}>
                     <img
-                      src={serverApi.getImageUrl(image.identifier)}
+                      src={getImageUrl(image.identifier)}
                       alt={image.filename}
                       className={styles.imagePreview}
                     />
