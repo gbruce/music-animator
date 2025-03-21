@@ -139,17 +139,18 @@ export const imageController = {
 
       // Get the optional folderId query parameter
       const folderId = req.query.folderId as string | undefined;
-      
+      console.log("getUserImages", userId, folderId);
+
       const images = await prisma.image.findMany({
         where: {
           userId,
-          folderId: folderId || null
+          folderId: folderId || undefined,
         },
         orderBy: {
           uploadDate: 'desc'
         }
       });
-
+      console.log("getUserImages", images);
       res.json(images);
     } catch (error) {
       console.error('Error getting user images:', error);
@@ -267,7 +268,7 @@ export const imageController = {
       // Update all the specified images
       await prisma.image.updateMany({
         where: {
-          id: { in: imageIds },
+          identifier: { in: imageIds },
           userId
         },
         data: {
