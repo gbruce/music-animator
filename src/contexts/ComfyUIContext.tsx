@@ -83,6 +83,17 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       const initialMessage = 'Preparing workflow...';
       setStatusMessage(messageModifier ? messageModifier(initialMessage) : initialMessage);
 
+      {
+        const tmpClient = new Client({
+          api_host: 'localhost:8188'
+        });
+        tmpClient.connect({websocket: {enabled: true}});
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tmpClient.disconnect();
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+      }
+
       // Create and initialize ComfyUI client
       const comfyClient = new Client({
         api_host: 'localhost:8188'
@@ -91,7 +102,6 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Store reference to the client
       clientRef.current = comfyClient;
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
       comfyClient.connect({websocket: {enabled: true}});
 
       logger.log('Enqueuing workflow');
