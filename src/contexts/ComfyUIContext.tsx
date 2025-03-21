@@ -91,11 +91,9 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       // Store reference to the client
       clientRef.current = comfyClient;
       
-      comfyClient.connect();
-  
-      // Reset cache before running workflow
-      comfyClient.resetCache();
-      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      comfyClient.connect({websocket: {enabled: true}});
+
       logger.log('Enqueuing workflow');
 
       // Check if cancelled before enqueueing

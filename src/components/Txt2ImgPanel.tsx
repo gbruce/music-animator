@@ -15,8 +15,12 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   ButtonGroup,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import { useComfyUI, StatusMessageModifier } from '../contexts/ComfyUIContext';
+import { useImages } from '../contexts/ImageContext';
+import { useTxt2Img, GeneratedImage } from '../contexts/Txt2ImgContext';
 import WorkflowStatusDisplay from './WorkflowStatusDisplay';
 import flux from './flux-workflow.json';
 import { createLogger } from '../utils/logger';
@@ -35,8 +39,16 @@ const Txt2ImgPanel: React.FC = () => {
   const [orientation, setOrientation] = useState<OrientationType>('portrait');
   const [prompt, setPrompt] = useState<string>("a rabbit in a field");
   const [batchCount, setBatchCount] = useState<number>(1);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  
+  // Use context instead of local state for generated images
+  const { 
+    generatedImages, 
+    setGeneratedImages
+  } = useTxt2Img();
+  
+  // Images context for saving to main gallery
+  const { uploadImage } = useImages();
   
   // Derived width and height based on orientation
   const { width, height } = orientation === 'portrait' ? PORTRAIT_RESOLUTION : LANDSCAPE_RESOLUTION;
@@ -148,7 +160,7 @@ const Txt2ImgPanel: React.FC = () => {
                 const res = await fetch(url);
                 const blob = await res.blob();
                 const imageUrl = URL.createObjectURL(blob);
-                setGeneratedImages(prev => [...prev, imageUrl]);
+                setGeneratedImages(prev => [...prev, { url: imageUrl, added: false, selected: false }]);
                 logger.log(`Image ${i+1} added to gallery`);
               }
             }
@@ -156,7 +168,7 @@ const Txt2ImgPanel: React.FC = () => {
             // Fallback to placeholder
             logger.warn(`No image data received for image ${i+1}, using placeholder`);
             const placeholderImageUrl = `https://picsum.photos/${width}/${height}?random=${Date.now() + i}`;
-            setGeneratedImages(prev => [...prev, placeholderImageUrl]);
+            setGeneratedImages(prev => [...prev, { url: placeholderImageUrl, added: false, selected: false }]);
           }
         }
         
@@ -174,7 +186,13 @@ const Txt2ImgPanel: React.FC = () => {
       logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, prompt, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow]);
+  }, [batchCount, height, prompt, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
+
+  // Remove an image from the generated images list
+  const removeImage = useCallback((index: number) => {
+    logger.log(`Removing image at index ${index}`);
+    setGeneratedImages(prev => prev.filter((_, i) => i !== index));
+  }, [setGeneratedImages]);
 
   // Log component mounted
   useEffect(() => {
@@ -204,25 +222,51 @@ const Txt2ImgPanel: React.FC = () => {
               overflow: 'auto'
             }}
           >
-            <Typography variant="h6" gutterBottom>Generated Images</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Generated Images</Typography>
+            </Box>
             
             <Grid container spacing={2}>
               {generatedImages.length > 0 ? (
-                generatedImages.map((imgUrl, index) => (
+                generatedImages.map((img, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
                     <Paper 
                       elevation={2} 
                       sx={{ 
                         p: 1, 
                         position: 'relative',
+                        border: theme => img.added ? `2px solid ${theme.palette.success.main}` : '1px solid rgba(0,0,0,0.12)',
                         '&:hover': {
                           boxShadow: 6
-                        }
+                        },
                       }}
                     >
+                      {img.added && (
+                        <Tooltip title="Added to gallery">
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              bgcolor: 'success.main',
+                              color: 'white',
+                              borderRadius: '50%',
+                              width: 24,
+                              height: 24,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 1,
+                            }}
+                          >
+                            ✓
+                          </Box>
+                        </Tooltip>
+                      )}
+                      
                       <Box 
                         component="img"
-                        src={imgUrl}
+                        src={img.url}
                         alt={`Generated image ${index + 1}`}
                         sx={{
                           width: '100%',
@@ -231,9 +275,79 @@ const Txt2ImgPanel: React.FC = () => {
                           display: 'block'
                         }}
                       />
-                      <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
-                        Image {index + 1}
-                      </Typography>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mt: 1
+                      }}>
+                        <Typography variant="caption">
+                          Image {index + 1}
+                        </Typography>
+                        
+                        <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          {!img.added && (
+                            <Tooltip title="Add to gallery">
+                              <IconButton 
+                                size="small"
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(img.url);
+                                    const blob = await response.blob();
+                                    const filename = `generated-${Date.now()}.png`;
+                                    const file = new File([blob], filename, { type: 'image/png' });
+                                    await uploadImage(file, undefined);
+                                    setGeneratedImages(prev => 
+                                      prev.map((i, idx) => 
+                                        idx === index ? {...i, added: true} : i
+                                      )
+                                    );
+                                  } catch (error) {
+                                    logger.error('Error adding image to gallery:', error);
+                                  }
+                                }}
+                              >
+                                <Box sx={{ 
+                                  fontSize: '20px',
+                                  lineHeight: 1, 
+                                  width: 20, 
+                                  height: 20, 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center' 
+                                }}>
+                                  +
+                                </Box>
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          
+                          <Tooltip title="Remove from panel">
+                            <IconButton 
+                              size="small"
+                              color="error"
+                              onClick={() => removeImage(index)}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                              </svg>
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
                     </Paper>
                   </Grid>
                 ))
@@ -262,7 +376,6 @@ const Txt2ImgPanel: React.FC = () => {
         {/* Right side - Controls */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>Text to Image Controls</Typography>
             
             {/* Status display */}
             <WorkflowStatusDisplay 
@@ -301,7 +414,6 @@ const Txt2ImgPanel: React.FC = () => {
             
             {/* Resolution orientation toggle */}
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" gutterBottom>Resolution</Typography>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <ToggleButtonGroup
                   value={orientation}
@@ -330,7 +442,7 @@ const Txt2ImgPanel: React.FC = () => {
               fullWidth
               label="Prompt"
               multiline
-              rows={4}
+              rows={10}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               variant="outlined"
@@ -340,7 +452,7 @@ const Txt2ImgPanel: React.FC = () => {
             
             {/* Batch count */}
             <Typography id="batch-count-slider" gutterBottom>
-              Batch Count: {batchCount}
+              Batch Count: {batchCount} (Max: 20)
             </Typography>
             <Slider
               value={batchCount}

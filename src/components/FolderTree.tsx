@@ -274,6 +274,28 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder, ha
             </svg>
           </button>
         </div>
+        
+        {/* All Images Root Folder */}
+        <div 
+          className={`${styles.rootFolderItem} ${currentFolder === null ? styles.folderItemSelected : ''}`} 
+          onClick={() => setCurrentFolder(null)}
+        >
+          <div style={{ width: '16px', marginRight: '1px' }}>
+            {/* Empty space with exact same width as toggle */}
+          </div>
+          
+          <span className={styles.rootFolderIcon} style={{ marginLeft: '0' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 6l2-2h5l2 2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"></path>
+              <rect x="9" y="10" width="6" height="6"></rect>
+            </svg>
+          </span>
+          
+          <span className={styles.rootFolderName}>
+            All Images
+          </span>
+        </div>
+        
         <div className={styles.folderTree}>
           {rootFolders.map((folder) => (
             <FolderItem 

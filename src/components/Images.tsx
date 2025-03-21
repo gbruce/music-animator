@@ -215,50 +215,50 @@ const Images: React.FC = () => {
         title={modalMode === 'create' ? 'Create New Folder' : 'Rename Folder'}
         initialName={selectedFolder?.name}
       />
-    
-      {/* Upload area */}
-      <div
-        className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={openFileDialog}
-      >
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileInputChange}
-          style={{ display: 'none' }}
-          multiple
-          accept="image/*"
-        />
-        <div className={styles.dropZoneContent}>
-          <svg
-            className={styles.uploadIcon}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <p>Drag and drop images here or click to browse</p>
-        </div>
-      </div>
-
-      {uploadError && <div className={styles.errorMessage}>{uploadError}</div>}
 
       {/* Main content area with folder tree and images */}
       <div className={styles.imageContent}>
-        {/* Folder tree in same container as drop zone for alignment */}
+        {/* Left column with folder tree and upload area */}
         <div className={styles.leftColumn}>
+          {/* Upload area */}
+          <div
+            className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={openFileDialog}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileInputChange}
+              style={{ display: 'none' }}
+              multiple
+              accept="image/*"
+            />
+            <div className={styles.dropZoneContent}>
+              <svg
+                className={styles.uploadIcon}
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <p>Drop images or click</p>
+            </div>
+          </div>
+
+          {uploadError && <div className={styles.errorMessage}>{uploadError}</div>}
+
           <FolderTree 
             onAddFolder={handleAddFolder}
             onRenameFolder={handleRenameFolder}
@@ -270,36 +270,40 @@ const Images: React.FC = () => {
         <div className={styles.contentPanel}>
           {/* Breadcrumbs navigation */}
           <div className={styles.breadcrumbs}>
-            <span 
-              className={!currentFolder ? styles.breadcrumbCurrent : styles.breadcrumbLink}
-              onClick={() => navigateToBreadcrumb(null)}
-            >
-              Library
-            </span>
-            
-            {breadcrumbPath.map((folder, index) => (
-              <React.Fragment key={folder.id}>
-                <span className={styles.breadcrumbsSeparator}>/</span>
+            {currentFolder && (
+              <>
                 <span 
-                  className={
-                    index === breadcrumbPath.length - 1
-                      ? styles.breadcrumbCurrent
-                      : styles.breadcrumbLink
-                  }
-                  onClick={() => navigateToBreadcrumb(folder.id)}
+                  className={styles.breadcrumbLink}
+                  onClick={() => navigateToBreadcrumb(null)}
                 >
-                  {folder.name}
+                  Back to all images
                 </span>
-              </React.Fragment>
-            ))}
+                
+                {breadcrumbPath.map((folder, index) => (
+                  <React.Fragment key={folder.id}>
+                    <span className={styles.breadcrumbsSeparator}>/</span>
+                    <span 
+                      className={
+                        index === breadcrumbPath.length - 1
+                          ? styles.breadcrumbCurrent
+                          : styles.breadcrumbLink
+                      }
+                      onClick={() => navigateToBreadcrumb(folder.id)}
+                    >
+                      {folder.name}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </>
+            )}
           </div>
           
           {/* Folder indicator */}
-          <div className={styles.folderIndicator}>
-            {currentFolder 
-              ? `Viewing only images in "${breadcrumbPath[breadcrumbPath.length - 1]?.name || 'Unknown folder'}"` 
-              : 'Viewing all images in your library'}
-          </div>
+          {currentFolder && (
+            <div className={styles.folderIndicator}>
+              {`Viewing only images in "${breadcrumbPath[breadcrumbPath.length - 1]?.name || 'Unknown folder'}"`}
+            </div>
+          )}
           
           {/* Image grid */}
           {loadingImages ? (

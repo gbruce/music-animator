@@ -114,20 +114,20 @@ export const timelineStyles = {
   noTracks: `text-center text-gray-400 py-4`,
   
   // Image manager styles
-  dropZone: `w-full h-40 border-2 border-dashed border-blue-400/50 rounded-lg 
+  dropZone: `w-full h-32 border-2 border-dashed border-blue-400/50 rounded-lg 
     flex items-center justify-center cursor-pointer transition-all duration-200
-    hover:border-blue-400 hover:bg-blue-400/10 mb-6`,
+    hover:border-blue-400 hover:bg-blue-400/10 mb-4`,
   
   dropZoneActive: `border-blue-500 bg-blue-500/20`,
   
   dropZoneContent: `flex flex-col items-center justify-center text-gray-300`,
   
-  uploadIcon: `w-10 h-10 mb-2 text-blue-400`,
+  uploadIcon: `w-8 h-8 mb-1 text-blue-400`,
   
-  errorMessage: `text-red-400 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg`,
+  errorMessage: `text-red-400 mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm`,
   
   imageGrid: `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 
-    max-h-[calc(100vh-300px)] overflow-y-auto p-2`,
+    max-h-[calc(100vh-200px)] overflow-y-auto p-2`,
   
   noImages: `col-span-full text-center text-gray-400 py-8`,
   
@@ -156,7 +156,7 @@ export const timelineStyles = {
   
   leftColumn: `w-64`,
   
-  folderTreeContainer: `w-full overflow-y-auto max-h-[calc(100vh-300px)]`,
+  folderTreeContainer: `w-full overflow-y-auto max-h-[calc(100vh-360px)]`,
   
   folderTree: `py-2`,
   
@@ -165,9 +165,16 @@ export const timelineStyles = {
     
   folderItemSelected: `bg-blue-500/20 text-blue-400`,
   
+  rootFolderItem: `flex items-center py-1 px-2 text-gray-200 hover:bg-gray-700/50 cursor-pointer
+    transition-colors rounded-md mb-2 group border-b border-gray-700/50 pb-2`,
+  
   folderName: `ml-2 text-sm truncate flex-grow`,
   
+  rootFolderName: `ml-2 text-sm font-medium truncate flex-grow`,
+  
   folderIcon: `text-gray-400 transition-colors cursor-grab hover:text-blue-400 hover:scale-110 transform duration-150`,
+  
+  rootFolderIcon: `text-blue-400 transition-colors hover:text-blue-500`,
   
   folderToggle: `mr-1 text-gray-500 flex items-center justify-center w-4 h-4`,
   
