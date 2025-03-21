@@ -18,6 +18,7 @@ interface FolderItemProps {
   handleDrop: (e: React.DragEvent<HTMLElement>, targetFolderId: string) => void;
   deleteFolder: (folderId: string) => Promise<void>;
   onRenameFolder: (folder: Folder) => void;
+  handleImageDrop?: (e: React.DragEvent<HTMLElement>, folderId: string) => void;
 }
 
 // Build a hierarchical folder structure for rendering
@@ -42,7 +43,8 @@ const FolderItem: React.FC<FolderItemProps> = ({
   handleDragLeave,
   handleDrop,
   deleteFolder,
-  onRenameFolder
+  onRenameFolder,
+  handleImageDrop
 }) => {
   const isOpen = openFolders.has(folder.id);
   const children = buildFolderHierarchy(folders, folder.id);
@@ -73,14 +75,61 @@ const FolderItem: React.FC<FolderItemProps> = ({
     }
   };
   
+  // Handle drag events
+  const onDragOver = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Check if this is a folder drag or an image drag based on data type
+    const dataType = e.dataTransfer.types[0];
+    
+    if (dataType === 'application/folder') {
+      // It's a folder being dragged
+      handleDragOver(e, folder.id);
+    } else if (dataType === 'application/image') {
+      // It's an image being dragged
+      e.currentTarget.classList.add(styles.draggingOver.split(' ')[0]);
+    }
+  };
+  
+  const onDragLeave = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Remove highlight regardless of drag type
+    e.currentTarget.classList.remove(styles.draggingOver.split(' ')[0]);
+    
+    // If it's a folder drag, also call the folder drag leave handler
+    if (e.dataTransfer.types.includes('application/folder')) {
+      handleDragLeave(e);
+    }
+  };
+  
+  const onDrop = (e: React.DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Remove highlight
+    e.currentTarget.classList.remove(styles.draggingOver.split(' ')[0]);
+    
+    // Check data type to determine what's being dropped
+    if (e.dataTransfer.types.includes('application/folder')) {
+      // It's a folder being dropped
+      handleDrop(e, folder.id);
+    } else if (e.dataTransfer.types.includes('application/image') && handleImageDrop) {
+      // It's an image being dropped
+      handleImageDrop(e, folder.id);
+    }
+  };
+  
   return (
     <div>
       <div
         className={`${styles.folderItem} ${isSelected ? styles.folderItemSelected : ''} ${isDragTarget ? styles.draggingOver : ''}`}
         onClick={() => handleFolderClick(folder.id)}
-        onDragOver={(e) => handleDragOver(e, folder.id)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, folder.id)}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
         style={{ paddingLeft: `${level * 16}px` }}
       >
         <div style={{ width: '16px', display: 'flex', justifyContent: 'center' }}>
@@ -108,7 +157,10 @@ const FolderItem: React.FC<FolderItemProps> = ({
         <span 
           className={styles.folderIcon}
           draggable
-          onDragStart={(e) => handleDragStart(e, folder.id)}
+          onDragStart={(e) => {
+            e.dataTransfer.setData('application/folder', folder.id);
+            handleDragStart(e, folder.id);
+          }}
           onDragEnd={handleDragEnd}
         >
           {getFolderIcon()}
@@ -171,6 +223,7 @@ const FolderItem: React.FC<FolderItemProps> = ({
               handleDrop={handleDrop}
               deleteFolder={deleteFolder}
               onRenameFolder={onRenameFolder}
+              handleImageDrop={handleImageDrop}
             />
           ))}
         </div>

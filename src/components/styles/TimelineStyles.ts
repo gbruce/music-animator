@@ -132,7 +132,10 @@ export const timelineStyles = {
   noImages: `col-span-full text-center text-gray-400 py-8`,
   
   imageCard: `relative bg-gray-800 rounded-lg overflow-hidden border border-gray-700 
-    transition-all duration-200 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10`,
+    transition-all duration-200 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10
+    cursor-grab`,
+  
+  imageCardDragging: `opacity-50 border-blue-500 shadow-lg shadow-blue-500/30`,
   
   imagePreview: `w-full aspect-square object-cover`,
   

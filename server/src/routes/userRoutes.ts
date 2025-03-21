@@ -15,4 +15,9 @@ router.post('/reset-password', userController.resetPassword);
 router.get('/profile', auth, userController.getProfile);
 router.post('/change-password', auth, userController.changePassword);
 
+// Add a simple ping endpoint for testing connectivity
+router.get('/ping', (req, res) => {
+  res.status(200).json({ message: 'Server is running' });
+});
+
 export default router; 

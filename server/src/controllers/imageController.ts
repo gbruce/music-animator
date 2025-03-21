@@ -232,6 +232,7 @@ export const imageController = {
   
   // Move images to a folder
   async moveImagesToFolder(req: Request, res: Response): Promise<void> {
+    console.log("moveImagesToFolder called", req.body);
     try {
       const userId = req.user?.id;
       const { imageIds, folderId } = req.body;

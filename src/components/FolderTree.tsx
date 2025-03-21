@@ -11,9 +11,10 @@ type TimeoutRef = ReturnType<typeof setTimeout> | null;
 interface FolderTreeProps {
   onAddFolder: () => void;
   onRenameFolder: (folder: Folder) => void;
+  handleImageDrop?: (e: React.DragEvent<HTMLElement>, folderId: string) => void;
 }
 
-const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder }) => {
+const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder, handleImageDrop }) => {
   const { user } = useAuth();
   const { folders, currentFolder, setCurrentFolder, deleteFolder, moveFolder } = useImages();
   const [draggingFolder, setDraggingFolder] = useState<string | null>(null);
@@ -292,6 +293,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder }) 
               handleDrop={handleDrop}
               deleteFolder={deleteFolder}
               onRenameFolder={onRenameFolder}
+              handleImageDrop={handleImageDrop}
             />
           ))}
         </div>

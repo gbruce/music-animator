@@ -383,7 +383,7 @@ export const imageApi = {
 
   moveImagesToFolder: async (imageIds: string[], folderId?: string): Promise<void> => {
     try {
-      await api.patch('/images/move', { imageIds, folderId });
+      await api.post('/images/move', { imageIds, folderId });
     } catch (error) {
       console.error('Move images error:', error);
       throw error;

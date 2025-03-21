@@ -21,12 +21,14 @@ const Images: React.FC = () => {
     renameFolder,
     getCurrentFolderImages,
     getBreadcrumbPath,
-    getImageUrl
+    getImageUrl,
+    moveImagesToFolder
   } = useImages();
   const { user } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [draggingImage, setDraggingImage] = useState<string | null>(null);
   
   // Modal states
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -139,6 +141,70 @@ const Images: React.FC = () => {
     setCurrentFolder(folderId);
   };
 
+  // Handle image drag start
+  const handleImageDragStart = (e: React.DragEvent<HTMLElement>, imageId: string) => {
+    e.dataTransfer.setData('application/image', imageId);
+    setDraggingImage(imageId);
+    
+    // Add dragging class to the element
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add(styles.imageCardDragging.split(' ')[0]);
+    
+    // Set a preview image
+    const image = images.find(img => img.identifier === imageId);
+    if (image) {
+      const element = document.createElement('div');
+      element.style.position = 'absolute';
+      element.style.top = '-1000px';
+      element.style.width = '100px';
+      element.style.height = '100px';
+      element.style.backgroundImage = `url(${getImageUrl(image.identifier)})`;
+      element.style.backgroundSize = 'cover';
+      element.style.backgroundPosition = 'center';
+      element.style.borderRadius = '4px';
+      document.body.appendChild(element);
+      
+      e.dataTransfer.setDragImage(element, 50, 50);
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(element);
+      }, 100);
+    }
+  };
+
+  // Handle image drag end
+  const handleImageDragEnd = (e: React.DragEvent<HTMLElement>) => {
+    // Remove dragging class
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove(styles.imageCardDragging.split(' ')[0]);
+    
+    setDraggingImage(null);
+  };
+
+  // Handle dropping images onto folders
+  const handleImageDropOnFolder = async (e: React.DragEvent<HTMLElement>, folderId: string) => {
+    const imageId = e.dataTransfer.getData('application/image');
+    
+    if (!imageId) return;
+    
+    try {
+      // Find the image to get its identifier
+      const image = images.find(img => img.identifier === imageId);
+      
+      if (!image) {
+        console.error('Image not found:', imageId);
+        return;
+      }
+      
+      // Move the image to the folder using the identifier
+      await moveImagesToFolder([image.identifier], folderId);
+      console.log(`Moved image ${image.identifier} to folder ${folderId}`);
+    } catch (err) {
+      console.error('Failed to move image to folder:', err);
+    }
+  };
+
   return (
     <div>
       {/* Folder Modal */}
@@ -196,6 +262,7 @@ const Images: React.FC = () => {
           <FolderTree 
             onAddFolder={handleAddFolder}
             onRenameFolder={handleRenameFolder}
+            handleImageDrop={handleImageDropOnFolder}
           />
         </div>
         
@@ -207,7 +274,7 @@ const Images: React.FC = () => {
               className={!currentFolder ? styles.breadcrumbCurrent : styles.breadcrumbLink}
               onClick={() => navigateToBreadcrumb(null)}
             >
-              All Images
+              Library
             </span>
             
             {breadcrumbPath.map((folder, index) => (
@@ -230,8 +297,8 @@ const Images: React.FC = () => {
           {/* Folder indicator */}
           <div className={styles.folderIndicator}>
             {currentFolder 
-              ? `Viewing images in "${breadcrumbPath[breadcrumbPath.length - 1]?.name || 'Unknown folder'}"` 
-              : 'Viewing all unorganized images'}
+              ? `Viewing only images in "${breadcrumbPath[breadcrumbPath.length - 1]?.name || 'Unknown folder'}"` 
+              : 'Viewing all images in your library'}
           </div>
           
           {/* Image grid */}
@@ -243,15 +310,22 @@ const Images: React.FC = () => {
                 <div className={styles.noImages}>
                   {currentFolder 
                     ? 'No images in this folder' 
-                    : 'No unorganized images'}
+                    : 'No images in your library'}
                 </div>
               ) : (
                 currentFolderImages.map(image => (
-                  <div key={image.identifier} className={styles.imageCard}>
+                  <div 
+                    key={image.identifier} 
+                    className={styles.imageCard}
+                    draggable
+                    onDragStart={(e) => handleImageDragStart(e, image.identifier)}
+                    onDragEnd={handleImageDragEnd}
+                  >
                     <img
                       src={getImageUrl(image.identifier)}
                       alt={image.filename}
                       className={styles.imagePreview}
+                      draggable={false}
                     />
                     <div className={styles.imageInfo}>
                       <div className={styles.imageName}>{image.filename}</div>

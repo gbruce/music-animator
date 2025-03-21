@@ -57,6 +57,11 @@ app.use('/api/images', imageRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api', trackRoutes); // Track routes include their own prefixes
 
+// Add a ping endpoint for tests to check if server is running
+app.get('/ping', (req, res) => {
+  res.status(200).json({ message: 'Server is running' });
+});
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 }); 

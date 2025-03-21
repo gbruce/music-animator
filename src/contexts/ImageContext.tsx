@@ -278,8 +278,14 @@ export const ImageProvider: React.FC<ImageProviderProps> = ({ children }) => {
   }, [user]);
 
   const getCurrentFolderImages = useCallback(() => {
-    return images;
-  }, [images]);
+    // If no folder is selected (All Images), return all images
+    if (currentFolder === null) {
+      return images;
+    }
+    
+    // Otherwise, filter images for the current folder only
+    return images.filter(image => image.folderId === currentFolder);
+  }, [images, currentFolder]);
 
   const getBreadcrumbPath = useCallback((folderId: string | null) => {
     if (!folderId) return [];
