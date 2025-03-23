@@ -1,17 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
   Container,
   Grid,
-  TextField,
   Typography,
   Paper,
   Slider,
-  FormControl,
-  InputLabel,
-  OutlinedInput,
-  InputAdornment,
   ToggleButton,
   ToggleButtonGroup,
   ButtonGroup,
@@ -20,13 +16,13 @@ import {
 } from '@mui/material';
 import { useComfyUI, StatusMessageModifier } from '../contexts/ComfyUIContext';
 import { useImages } from '../contexts/ImageContext';
-import { useTxt2Img, GeneratedImage } from '../contexts/Txt2ImgContext';
+import { useImg2Img } from '../contexts/Img2ImgContext';
 import WorkflowStatusDisplay from './WorkflowStatusDisplay';
-import flux from './flux-workflow.json';
+import img2imgWorkflow from './img2img-workflow.json';
 import { createLogger } from '../utils/logger';
 
 // Create a logger instance for this component
-const logger = createLogger('Txt2ImgPanel.tsx');
+const logger = createLogger('Img2ImgPanel.tsx');
 
 // Resolution presets
 const PORTRAIT_RESOLUTION = { width: 720, height: 1280 };
@@ -34,18 +30,21 @@ const LANDSCAPE_RESOLUTION = { width: 1280, height: 720 };
 
 type OrientationType = 'portrait' | 'landscape';
 
-const Txt2ImgPanel: React.FC = () => {
+const Img2ImgPanel: React.FC = () => {
   // State variables
   const [orientation, setOrientation] = useState<OrientationType>('portrait');
-  const [prompt, setPrompt] = useState<string>("a rabbit in a field");
   const [batchCount, setBatchCount] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Use context instead of local state for generated images
   const { 
     generatedImages, 
-    setGeneratedImages
-  } = useTxt2Img();
+    setGeneratedImages,
+    sourceImage,
+    setSourceImage
+  } = useImg2Img();
   
   // Images context for saving to main gallery
   const { uploadImage } = useImages();
@@ -54,7 +53,7 @@ const Txt2ImgPanel: React.FC = () => {
   const { width, height } = orientation === 'portrait' ? PORTRAIT_RESOLUTION : LANDSCAPE_RESOLUTION;
   
   // Use the global ComfyUI context
-  const { status, statusMessage, progress, runTxt2ImgWorkflow, cancelWorkflow, resetStatus } = useComfyUI();
+  const { status, statusMessage, progress, runWorkflow, cancelWorkflow, resetStatus } = useComfyUI();
 
   // Reset generation state when status changes to success, error, or cancelled
   useEffect(() => {
@@ -78,10 +77,85 @@ const Txt2ImgPanel: React.FC = () => {
     cancelWorkflow();
   }, [cancelWorkflow]);
 
+  // Handle file drop
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+    
+    // Use only the first file and ensure it's an image
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      logger.error('Dropped file is not an image');
+      return;
+    }
+    
+    // Create URL for the image
+    const imageUrl = URL.createObjectURL(file);
+    setSourceImage(imageUrl);
+    logger.log(`Source image set: ${file.name}`);
+  }, [setSourceImage]);
+  
+  // Handle drag over
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+  
+  // Handle drag leave
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+  
+  // Handle file selection via click
+  const openFileDialog = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, []);
+  
+  // Handle file selection change
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      logger.error('Selected file is not an image');
+      return;
+    }
+    
+    // Create URL for the image
+    const imageUrl = URL.createObjectURL(file);
+    setSourceImage(imageUrl);
+    logger.log(`Source image set: ${file.name}`);
+    
+    // Reset the input to allow selecting the same file again
+    e.target.value = '';
+  }, [setSourceImage]);
+  
+  // Clear source image
+  const clearSourceImage = useCallback(() => {
+    if (sourceImage) {
+      URL.revokeObjectURL(sourceImage);
+    }
+    setSourceImage(null);
+    logger.log('Source image cleared');
+  }, [sourceImage, setSourceImage]);
+
   // Handle generate button click
   const handleGenerate = useCallback(async () => {
     // Don't allow starting a new generation if one is already in progress
     if (isGenerating) return;
+    
+    // Ensure there's a source image
+    if (!sourceImage) {
+      logger.error('No source image selected');
+      return;
+    }
 
     try {
       // Reset the logger timer to measure the generation process
@@ -95,7 +169,7 @@ const Txt2ImgPanel: React.FC = () => {
       resetStatus();
       
       // Create a deep copy of the flux workflow
-      const workflowCopy = JSON.parse(JSON.stringify(flux));
+      const workflowCopy = JSON.parse(JSON.stringify(img2imgWorkflow));
       
       // Update the workflow with our parameters
       // Set random seed
@@ -103,9 +177,7 @@ const Txt2ImgPanel: React.FC = () => {
       workflowCopy[25].inputs.noise_seed = seedValue;
       logger.log(`Using seed: ${seedValue}`);
       
-      // Set the prompt
-      workflowCopy[31].inputs.prompt = prompt;
-      logger.log(`Using prompt: "${prompt}"`);
+      // TODO: Add image input to workflow once we have proper img2img workflow
       
       // Set the resolution
       const resolutionSetting = orientation === 'portrait' ? "1152x2560 (9:16) - Portrait Ultra Large" : "2560x1152 (16:9) - Ultra Wide Large";
@@ -138,7 +210,7 @@ const Txt2ImgPanel: React.FC = () => {
           };
           
           // Run the workflow with the message modifier
-          const response = await runTxt2ImgWorkflow(workflowCopy, undefined, imageCountMessageModifier);
+          const response = await runWorkflow(workflowCopy, undefined, imageCountMessageModifier);
           
           // If the response is null, it means the generation was cancelled
           if (response === null) {
@@ -186,7 +258,7 @@ const Txt2ImgPanel: React.FC = () => {
       logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, prompt, runTxt2ImgWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
+  }, [batchCount, height, sourceImage, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
 
   // Remove an image from the generated images list
   const removeImage = useCallback((index: number) => {
@@ -196,14 +268,18 @@ const Txt2ImgPanel: React.FC = () => {
 
   // Log component mounted
   useEffect(() => {
-    logger.log('Txt2ImgPanel component mounted');
+    logger.log('Img2ImgPanel component mounted');
     return () => {
-      logger.log('Txt2ImgPanel component unmounted');
+      logger.log('Img2ImgPanel component unmounted');
+      // Clean up any object URLs to prevent memory leaks
+      if (sourceImage) {
+        URL.revokeObjectURL(sourceImage);
+      }
     };
-  }, []);
+  }, [sourceImage]);
 
   // Determine if the generate button should be disabled
-  const isGenerateButtonDisabled = status === 'loading' || status === 'processing';
+  const isGenerateButtonDisabled = status === 'loading' || status === 'processing' || !sourceImage;
 
   // Determine if the cancel button should be shown
   const shouldShowCancelButton = status === 'loading' || status === 'processing';
@@ -376,7 +452,6 @@ const Txt2ImgPanel: React.FC = () => {
         {/* Right side - Controls */}
         <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 2 }}>
-            
             {/* Status display */}
             <WorkflowStatusDisplay 
               status={status} 
@@ -437,18 +512,100 @@ const Txt2ImgPanel: React.FC = () => {
               </Box>
             </Box>
             
-            {/* Prompt input */}
-            <TextField
-              fullWidth
-              label="Prompt"
-              multiline
-              rows={10}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              variant="outlined"
-              sx={{ mb: 3 }}
-              disabled={isGenerateButtonDisabled}
-            />
+            {/* Image drop zone */}
+            <Box sx={{ mb: 3 }}>
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              
+              {sourceImage ? (
+                <Box sx={{ 
+                  mb: 2,
+                  position: 'relative',
+                  borderRadius: 1,
+                  overflow: 'hidden'
+                }}>
+                  <Box 
+                    component="img"
+                    src={sourceImage}
+                    alt="Source image"
+                    sx={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      borderRadius: 1,
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    onClick={clearSourceImage}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      minWidth: 'auto',
+                      width: 32,
+                      height: 32,
+                      p: 0,
+                    }}
+                  >
+                    ×
+                  </Button>
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    border: theme => isDragging 
+                      ? `2px dashed ${theme.palette.primary.main}` 
+                      : '2px dashed rgba(0,0,0,0.2)',
+                    borderRadius: 1,
+                    p: 4,
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    bgcolor: isDragging ? 'rgba(0,0,0,0.05)' : 'transparent',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: 200,
+                  }}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={openFileDialog}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ color: 'rgba(0,0,0,0.3)', marginBottom: 16 }}
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <Typography variant="body1" color="text.secondary" gutterBottom>
+                    Drag & drop or click to select
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Supported formats: JPG, PNG, WEBP
+                  </Typography>
+                </Box>
+              )}
+            </Box>
             
             {/* Batch count */}
             <Typography id="batch-count-slider" gutterBottom>
@@ -473,4 +630,4 @@ const Txt2ImgPanel: React.FC = () => {
   );
 };
 
-export default Txt2ImgPanel; 
+export default Img2ImgPanel;

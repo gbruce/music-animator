@@ -15,7 +15,7 @@ interface ComfyUIContextType {
   status: WorkflowStatus;
   progress: number;
   statusMessage: string;
-  runWorkflow: (workflow: any, onComplete?: (result: any) => void, messageModifier?: StatusMessageModifier) => Promise<any>;
+  runTxt2ImgWorkflow: (workflow: any, onComplete?: (result: any) => void, messageModifier?: StatusMessageModifier) => Promise<any>;
   cancelWorkflow: () => void;
   resetStatus: () => void;
 }
@@ -68,7 +68,7 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, []);
 
   // Function to run a workflow
-  const runWorkflow = useCallback(async (
+  const runTxt2ImgWorkflow = useCallback(async (
     workflow: any, 
     onComplete?: (result: any) => void,
     messageModifier?: StatusMessageModifier
@@ -189,7 +189,7 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
     status,
     progress,
     statusMessage,
-    runWorkflow,
+    runTxt2ImgWorkflow,
     cancelWorkflow,
     resetStatus
   };

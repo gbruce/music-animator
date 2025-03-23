@@ -6,6 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import TimelineContainer from './TimelineContainer';
 import Images from './Images';
 import Txt2ImgPanel from './Txt2ImgPanel';
+import Img2ImgPanel from './Img2ImgPanel';
 import { 
   AppBar, 
   Box, 
@@ -36,11 +37,11 @@ import {
 } from '@mui/icons-material';
 
 interface DashboardProps {
-  activeTab: 'projects' | 'images' | 'txt2img';
+  activeTab: 'projects' | 'images' | 'txt2img' | 'img2img';
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) => {
-  const [activeTab, setActiveTab] = useState<'projects' | 'images' | 'txt2img'>(initialActiveTab);
+  const [activeTab, setActiveTab] = useState<'projects' | 'images' | 'txt2img' | 'img2img'>(initialActiveTab);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -63,12 +64,14 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     setActiveTab(initialActiveTab);
   }, [initialActiveTab]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images' | 'txt2img') => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images' | 'txt2img' | 'img2img') => {
     setActiveTab(newValue);
     if (newValue === 'images') {
       navigate('/images');
     } else if (newValue === 'txt2img') {
       navigate('/txt2img');
+    } else if (newValue === 'img2img') {
+      navigate('/img2img');
     } else {
       navigate('/');
     }
@@ -178,6 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
           <Tab label="Projects" value="projects" />
           <Tab label="Images" value="images" />
           <Tab label="Txt2Img" value="txt2img" />
+          <Tab label="Img2Img" value="img2img" />
         </Tabs>
       </AppBar>
 
@@ -186,8 +190,10 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
           <TimelineContainer />
         ) : activeTab === 'images' ? (
           <Images />
-        ) : (
+        ) : activeTab === 'txt2img' ? (
           <Txt2ImgPanel />
+        ) : (
+          <Img2ImgPanel />
         )}
       </Container>
 
