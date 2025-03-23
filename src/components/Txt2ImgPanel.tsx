@@ -54,7 +54,7 @@ const Txt2ImgPanel: React.FC = () => {
   const { width, height } = orientation === 'portrait' ? PORTRAIT_RESOLUTION : LANDSCAPE_RESOLUTION;
   
   // Use the global ComfyUI context
-  const { status, statusMessage, progress, runTxt2ImgWorkflow, cancelWorkflow, resetStatus } = useComfyUI();
+  const { status, statusMessage, progress, runWorkflow, cancelWorkflow, resetStatus } = useComfyUI();
 
   // Reset generation state when status changes to success, error, or cancelled
   useEffect(() => {
@@ -138,7 +138,7 @@ const Txt2ImgPanel: React.FC = () => {
           };
           
           // Run the workflow with the message modifier
-          const response = await runTxt2ImgWorkflow(workflowCopy, undefined, imageCountMessageModifier);
+          const response = await runWorkflow(workflowCopy, undefined, imageCountMessageModifier);
           
           // If the response is null, it means the generation was cancelled
           if (response === null) {
@@ -186,7 +186,7 @@ const Txt2ImgPanel: React.FC = () => {
       logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, prompt, runTxt2ImgWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
+  }, [batchCount, height, prompt, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
 
   // Remove an image from the generated images list
   const removeImage = useCallback((index: number) => {
