@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
@@ -15,6 +14,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { useComfyUI, StatusMessageModifier } from '../contexts/ComfyUIContext';
+import { Client } from '@stable-canvas/comfyui-client';
 import { useImages } from '../contexts/ImageContext';
 import { useImg2Img } from '../contexts/Img2ImgContext';
 import WorkflowStatusDisplay from './WorkflowStatusDisplay';
@@ -37,6 +37,9 @@ const Img2ImgPanel: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Keep track of the source image file name so we can upload it to ComfyUI
+  const [sourceImageFileName, setSourceImageFileName] = useState<string | null>(null);
   
   // Use context instead of local state for generated images
   const { 
@@ -92,9 +95,14 @@ const Img2ImgPanel: React.FC = () => {
       return;
     }
     
-    // Create URL for the image
+    // Store the original file for upload to ComfyUI later
+    // @ts-ignore - Adding a custom property to store the original file
+    window._lastSourceFile = file;
+    
+    // Create URL for the image preview
     const imageUrl = URL.createObjectURL(file);
     setSourceImage(imageUrl);
+    setSourceImageFileName(file.name);
     logger.log(`Source image set: ${file.name}`);
   }, [setSourceImage]);
   
@@ -128,9 +136,14 @@ const Img2ImgPanel: React.FC = () => {
       return;
     }
     
-    // Create URL for the image
+    // Store the original file for upload to ComfyUI later
+    // @ts-ignore - Adding a custom property to store the original file
+    window._lastSourceFile = file;
+    
+    // Create URL for the image preview
     const imageUrl = URL.createObjectURL(file);
     setSourceImage(imageUrl);
+    setSourceImageFileName(file.name);
     logger.log(`Source image set: ${file.name}`);
     
     // Reset the input to allow selecting the same file again
@@ -143,6 +156,10 @@ const Img2ImgPanel: React.FC = () => {
       URL.revokeObjectURL(sourceImage);
     }
     setSourceImage(null);
+    setSourceImageFileName(null);
+    // Clear the stored file reference
+    // @ts-ignore
+    window._lastSourceFile = null;
     logger.log('Source image cleared');
   }, [sourceImage, setSourceImage]);
 
@@ -168,29 +185,24 @@ const Img2ImgPanel: React.FC = () => {
       // Reset ComfyUI status to ensure a clean start
       resetStatus();
       
-      // Create a deep copy of the flux workflow
+      // Create a deep copy of the workflow
       const workflowCopy = JSON.parse(JSON.stringify(img2imgWorkflow));
       
-      // Update the workflow with our parameters
-      // Set random seed
-      const seedValue = Math.floor(Math.random() * 999999999);
-      workflowCopy[25].inputs.noise_seed = seedValue;
-      logger.log(`Using seed: ${seedValue}`);
-      
-      // TODO: Add image input to workflow once we have proper img2img workflow
-      
       // Set the resolution
-      const resolutionSetting = orientation === 'portrait' ? "1152x2560 (9:16) - Portrait Ultra Large" : "2560x1152 (16:9) - Ultra Wide Large";
-      workflowCopy[33].inputs.size_selected = resolutionSetting;
-      logger.log(`Using resolution: ${resolutionSetting}`);
+      // const resolutionSetting = orientation === 'portrait' ? "1152x2560 (9:16) - Portrait Ultra Large" : "2560x1152 (16:9) - Ultra Wide Large";
+      // workflowCopy[33].inputs.size_selected = resolutionSetting;
+      // logger.log(`Using resolution: ${resolutionSetting}`);
       
-      // Set batch size to 1 for sequential processing
-      if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
-        workflowCopy[27].inputs.batch_size = 1;
-        logger.log(`Set batch size to 1 for sequential processing. Will generate ${batchCount} images in series.`);
-      }
+      // // Set batch size to 1 for sequential processing
+      // if (workflowCopy[27] && workflowCopy[27].inputs.batch_size !== undefined) {
+      //   workflowCopy[27].inputs.batch_size = 1;
+      //   logger.log(`Set batch size to 1 for sequential processing. Will generate ${batchCount} images in series.`);
+      // }
       
       try {
+        // Variable to store the uploaded image name for reuse
+        let uploadedImageName: string | null = null;
+        
         // Process images one by one
         for (let i = 0; i < batchCount; i++) {
           
@@ -198,19 +210,78 @@ const Img2ImgPanel: React.FC = () => {
           
           // Update seed for each iteration
           const newSeed = Math.floor(Math.random() * 999999999);
-          workflowCopy[25].inputs.noise_seed = newSeed;
+          workflowCopy[17].inputs.noise_seed = newSeed;
           logger.log(`Using new random seed for image ${i+1}: ${newSeed}`);
-          
-          // Run the workflow and wait for completion
-          logger.log(`Sending workflow to ComfyUI for image ${i+1}`);
           
           // Create a message modifier function to add the image count prefix
           const imageCountMessageModifier = (message: string) => {
             return `[Image ${i+1}/${batchCount}] ${message}`;
           };
           
-          // Run the workflow with the message modifier
-          const response = await runWorkflow(workflowCopy, undefined, imageCountMessageModifier);
+          // Only set the onBeforeQueueing callback for the first iteration
+          let onBeforeQueueing = undefined;
+          
+          // If this is the first iteration or we don't have an uploaded image name yet
+          if (i === 0 || !uploadedImageName) {
+            onBeforeQueueing = async (client: Client) => {
+              try {
+                logger.log(`Uploading source image to ComfyUI for image ${i+1}`);
+                
+                // Use the stored file if available
+                // @ts-ignore
+                const sourceFile = window._lastSourceFile;
+                
+                if (!sourceFile) {
+                  throw new Error('Source file not available');
+                }
+                
+                // Create form data for the upload
+                const formData = new FormData();
+                formData.append('image', sourceFile);
+                
+                // Make a direct POST request to the ComfyUI upload endpoint
+                const uploadResponse = await client.fetchApi('/api/upload/image', {
+                  method: 'POST',
+                  body: formData,
+                });
+                
+                if (!uploadResponse.ok) {
+                  throw new Error(`Failed to upload image: ${uploadResponse.statusText}`);
+                }
+                
+                const uploadResult = await uploadResponse.json();
+                
+                if (!uploadResult || !uploadResult.name) {
+                  throw new Error('Failed to get upload result from ComfyUI');
+                }
+                
+                // Cache the uploaded image name for future iterations
+                uploadedImageName = uploadResult.name;
+                
+                logger.log(`Image uploaded successfully to ComfyUI: ${uploadedImageName}`);
+                
+                // Update the LoadImage node with the uploaded image name
+                if (workflowCopy[28] && workflowCopy[28].class_type === "LoadImage") {
+                  workflowCopy[28].inputs.image = uploadedImageName;
+                  logger.log(`Updated LoadImage node with image: ${uploadedImageName}`);
+                } else {
+                  logger.warn('Could not find LoadImage node in workflow');
+                }
+              } catch (error) {
+                logger.error('Error uploading image to ComfyUI', error);
+                throw error;
+              }
+            };
+          } else {
+            // For subsequent iterations, just update the image name in the workflow
+            logger.log(`Reusing previously uploaded image: ${uploadedImageName}`);
+            if (workflowCopy[28] && workflowCopy[28].class_type === "LoadImage") {
+              workflowCopy[28].inputs.image = uploadedImageName;
+            }
+          }
+          
+          // Run the workflow with the message modifier and image upload function
+          const response = await runWorkflow(workflowCopy, onBeforeQueueing, undefined, imageCountMessageModifier);
           
           // If the response is null, it means the generation was cancelled
           if (response === null) {
@@ -258,7 +329,7 @@ const Img2ImgPanel: React.FC = () => {
       logger.error('Error generating images', error);
       setIsGenerating(false);
     }
-  }, [batchCount, height, sourceImage, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
+  }, [batchCount, height, sourceImage, sourceImageFileName, runWorkflow, width, isGenerating, resetStatus, orientation, status, cancelWorkflow, setGeneratedImages]);
 
   // Remove an image from the generated images list
   const removeImage = useCallback((index: number) => {

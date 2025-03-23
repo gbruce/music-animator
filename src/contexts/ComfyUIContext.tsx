@@ -15,7 +15,7 @@ interface ComfyUIContextType {
   status: WorkflowStatus;
   progress: number;
   statusMessage: string;
-  runWorkflow: (workflow: any, onComplete?: (result: any) => void, messageModifier?: StatusMessageModifier) => Promise<any>;
+  runWorkflow: (workflow: any, onBeforeQueueing?: (client: Client) => Promise<void>, onComplete?: (result: any) => void, messageModifier?: StatusMessageModifier) => Promise<any>;
   cancelWorkflow: () => void;
   resetStatus: () => void;
 }
@@ -70,6 +70,7 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Function to run a workflow
   const runWorkflow = useCallback(async (
     workflow: any, 
+    onBeforeQueueing?: (client: Client) => Promise<void>,
     onComplete?: (result: any) => void,
     messageModifier?: StatusMessageModifier
   ) => {
@@ -112,6 +113,10 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
         setStatus('cancelled');
         setStatusMessage(messageModifier ? messageModifier('Generation cancelled by user') : 'Generation cancelled by user');
         return null;
+      }
+
+      if (onBeforeQueueing) {
+        await onBeforeQueueing(comfyClient);
       }
 
       // Enqueue the workflow
