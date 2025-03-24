@@ -212,6 +212,8 @@ const Img2ImgPanel: React.FC = () => {
           const newSeed = Math.floor(Math.random() * 999999999);
           workflowCopy[17].inputs.noise_seed = newSeed;
           logger.log(`Using new random seed for image ${i+1}: ${newSeed}`);
+
+          workflowCopy[23].inputs.swap_dimensions = orientation === 'portrait' ? 'Off' : 'On';
           
           // Create a message modifier function to add the image count prefix
           const imageCountMessageModifier = (message: string) => {

@@ -194,7 +194,7 @@
   },
   "17": {
     "inputs": {
-      "noise_seed": 484971972207324
+      "noise_seed": 404278042934208
     },
     "class_type": "RandomNoise",
     "_meta": {
@@ -281,10 +281,10 @@
   },
   "23": {
     "inputs": {
-      "width": 400,
-      "height": 1600,
-      "aspect_ratio": "SDXL - 9:16 portrait 768x1344",
-      "swap_dimensions": "On",
+      "width": 720,
+      "height": 1280,
+      "aspect_ratio": "custom",
+      "swap_dimensions": "Off",
       "upscale_factor": 1,
       "prescale_factor": 1,
       "batch_size": 1
