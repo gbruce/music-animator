@@ -139,7 +139,12 @@ const Img2ImgPanel: React.FC = () => {
     // Store the original file for upload to ComfyUI later
     // @ts-ignore - Adding a custom property to store the original file
     window._lastSourceFile = file;
-    
+
+    // Clean up any existing source image URL
+    if (sourceImage) {
+      URL.revokeObjectURL(sourceImage);
+    }
+
     // Create URL for the image preview
     const imageUrl = URL.createObjectURL(file);
     setSourceImage(imageUrl);
@@ -344,10 +349,6 @@ const Img2ImgPanel: React.FC = () => {
     logger.log('Img2ImgPanel component mounted');
     return () => {
       logger.log('Img2ImgPanel component unmounted');
-      // Clean up any object URLs to prevent memory leaks
-      if (sourceImage) {
-        URL.revokeObjectURL(sourceImage);
-      }
     };
   }, [sourceImage]);
 
