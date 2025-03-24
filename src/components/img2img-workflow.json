@@ -1,17 +1,4 @@
 {
-  "2": {
-    "inputs": {
-      "text": [
-        "3",
-        0
-      ],
-      "text2": ", sharp photo of a close-up of a large tree with its branches reaching up towards the sky. The tree appears to be in a forest or a wooded area, as there are other trees and shrubs visible in the background. The leaves on the tree are vibrant and colorful, with shades of orange, yellow, and red. The branches are twisted and gnarled, creating a sense of depth and texture. The ground below the tree is covered in green moss, and there is a large rock on the left side of the image. The sunlight is shining through the leaves, casting a warm glow on the scene."
-    },
-    "class_type": "ShowText|pysssss",
-    "_meta": {
-      "title": "Show Text 🐍"
-    }
-  },
   "3": {
     "inputs": {
       "text1": [
@@ -32,8 +19,8 @@
   "4": {
     "inputs": {
       "text": [
-        "7",
-        0
+        "8",
+        2
       ],
       "find": "The image shows",
       "replace": "sharp photo of"
@@ -64,19 +51,6 @@
     "class_type": "Text Multiline",
     "_meta": {
       "title": "Text Multiline"
-    }
-  },
-  "7": {
-    "inputs": {
-      "text": [
-        "8",
-        2
-      ],
-      "text2": "The image is a close-up of a large tree with its branches reaching up towards the sky. The tree appears to be in a forest or a wooded area, as there are other trees and shrubs visible in the background. The leaves on the tree are vibrant and colorful, with shades of orange, yellow, and red. The branches are twisted and gnarled, creating a sense of depth and texture. The ground below the tree is covered in green moss, and there is a large rock on the left side of the image. The sunlight is shining through the leaves, casting a warm glow on the scene."
-    },
-    "class_type": "ShowText|pysssss",
-    "_meta": {
-      "title": "Show Text 🐍"
     }
   },
   "8": {
@@ -117,7 +91,7 @@
   "10": {
     "inputs": {
       "text": [
-        "2",
+        "3",
         0
       ],
       "clip": [
@@ -220,7 +194,7 @@
   },
   "17": {
     "inputs": {
-      "noise_seed": 534053971469892
+      "noise_seed": 484971972207324
     },
     "class_type": "RandomNoise",
     "_meta": {

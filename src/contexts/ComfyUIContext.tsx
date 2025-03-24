@@ -84,16 +84,6 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
       const initialMessage = 'Preparing workflow...';
       setStatusMessage(messageModifier ? messageModifier(initialMessage) : initialMessage);
 
-      {
-        const tmpClient = new Client({
-          api_host: 'localhost:8188'
-        });
-        tmpClient.connect({websocket: {enabled: true}});
-        await new Promise(resolve => setTimeout(resolve, 200));
-        tmpClient.disconnect();
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-      }
 
       // Create and initialize ComfyUI client
       const comfyClient = new Client({
@@ -119,26 +109,40 @@ export const ComfyUIProvider: React.FC<{ children: ReactNode }> = ({ children })
         await onBeforeQueueing(comfyClient);
       }
 
+      const onProgress = (max: number, value: number) => {
+        // Check if cancelled during processing
+        if (isCancelledRef.current) {
+          return;
+        }
+        
+        const percentage = Math.round((value / max) * 100);
+        setProgress(percentage);
+        setStatus('processing');
+            
+        // Apply message modifier if provided
+        const progressMessage = `Processing: ${percentage}%`;
+        setStatusMessage(messageModifier ? messageModifier(progressMessage) : progressMessage);
+      };
+
+      let response;
       // Enqueue the workflow
-      const response = await comfyClient.enqueue(
+      response = await comfyClient.enqueue(
         workflow,
         {
+          workflow: {},
           progress: ({ max, value}) => {
-            // Check if cancelled during processing
-            if (isCancelledRef.current) {
-              return;
-            }
-            
-            const percentage = Math.round((value / max) * 100);
-            setProgress(percentage);
-            setStatus('processing');
-            
-            // Apply message modifier if provided
-            const progressMessage = `Processing: ${percentage}%`;
-            setStatusMessage(messageModifier ? messageModifier(progressMessage) : progressMessage);
+            onProgress(max, value);
           },
         }
       );
+
+      if (response.images.length === 0 && response.prompt_id) {
+        const unsub = comfyClient.on('progress',  ({ max, value}) => {
+          onProgress(max, value);
+        });
+        response = await comfyClient.getPromptResult(response.prompt_id);
+        unsub();
+      }
 
       // Check if cancelled after completion but before updating UI
       if (isCancelledRef.current) {
