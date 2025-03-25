@@ -183,7 +183,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
       // Create a new track in the database
       const trackName = `Track ${tracks.length + 1}`;
       const startBeat = 0;
-      const durationBeats = 5;
+      const durationBeats = 9;
       
       const newApiTrack = await createTrack(trackName, startBeat, durationBeats);
       
@@ -576,7 +576,7 @@ const Timeline: React.FC<TimelineProps> = ({ bpm, totalBeats, onBeatSelect, sele
                       color: 'text.secondary',
                     }}
                   >
-                    {i}
+                    {i + 1}
                   </Typography>
                   {i % 4 === 0 && (
                     <Typography

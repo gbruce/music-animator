@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Timeline from './Timeline';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTracks } from '../contexts/TrackContext';
-import { Box, TextField, Typography, Grid } from '@mui/material';
+import { Box, TextField, Typography, Grid, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 
 const TimelineContainer: React.FC = () => {
   const { 
     currentProject, 
     updateProject,
+    deleteProject
   } = useProjects();
   
   const { selectedTrack } = useTracks();
@@ -16,6 +18,7 @@ const TimelineContainer: React.FC = () => {
   const [duration, setDuration] = useState(60); // Duration in seconds
   const [totalBeats, setTotalBeats] = useState(0);
   const [fps, setFps] = useState(24);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Update local state when current project changes
   useEffect(() => {
@@ -67,6 +70,25 @@ const TimelineContainer: React.FC = () => {
     console.log(`Selected beat: ${beat}`);
   };
 
+  const handleDeleteProjectClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (currentProject) {
+      try {
+        await deleteProject(currentProject.id);
+        setDeleteDialogOpen(false);
+      } catch (error) {
+        console.error('Error deleting project:', error);
+      }
+    }
+  };
+
   if (!currentProject) {
     return (
       <Box sx={{ 
@@ -92,37 +114,49 @@ const TimelineContainer: React.FC = () => {
         p: 2, 
         bgcolor: 'background.default',
         borderBottom: '1px solid',
-        borderColor: 'divider'
+        borderColor: 'divider',
+        justifyContent: 'space-between'
       }}>
-        <TextField
-          label="BPM"
-          type="number"
-          size="small"
-          inputProps={{ min: 1 }}
-          value={bpm}
-          onChange={handleBpmChange}
-          sx={{ width: 100 }}
-        />
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <TextField
+            label="BPM"
+            type="number"
+            size="small"
+            inputProps={{ min: 1 }}
+            value={bpm}
+            onChange={handleBpmChange}
+            sx={{ width: 100 }}
+          />
 
-        <TextField
-          label="FPS"
-          type="number"
-          size="small"
-          inputProps={{ min: 1 }}
-          value={fps}
-          onChange={handleFpsChange}
-          sx={{ width: 100 }}
-        />
+          <TextField
+            label="FPS"
+            type="number"
+            size="small"
+            inputProps={{ min: 1 }}
+            value={fps}
+            onChange={handleFpsChange}
+            sx={{ width: 100 }}
+          />
 
-        <TextField
-          label="Duration (sec)"
-          type="number"
-          size="small"
-          inputProps={{ min: 1 }}
-          value={duration}
-          onChange={handleDurationChange}
-          sx={{ width: 150 }}
-        />
+          <TextField
+            label="Duration (sec)"
+            type="number"
+            size="small"
+            inputProps={{ min: 1 }}
+            value={duration}
+            onChange={handleDurationChange}
+            sx={{ width: 150 }}
+          />
+        </Box>
+        
+        <Button 
+          variant="outlined" 
+          color="error" 
+          startIcon={<DeleteIcon />}
+          onClick={handleDeleteProjectClick}
+        >
+          Delete Project
+        </Button>
       </Box>
 
       <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
@@ -133,6 +167,25 @@ const TimelineContainer: React.FC = () => {
           selectedTrack={selectedTrack}
         />
       </Box>
+
+      {/* Delete Project Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+      >
+        <DialogTitle>Delete Project</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the project "{currentProject?.name}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
