@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = API_CONFIG.apiUrl;
 
 export interface SignupData {
   email: string;

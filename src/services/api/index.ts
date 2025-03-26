@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3001';
+import { API_CONFIG } from '../../config';
+
+const API_BASE_URL = API_CONFIG.baseUrl;
 
 // Helper function to get token from localStorage
 export const getToken = (): string => {
