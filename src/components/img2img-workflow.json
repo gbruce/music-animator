@@ -63,6 +63,10 @@
       "num_beams": 3,
       "do_sample": true,
       "output_mask_select": "",
+      "seed": [
+        "30",
+        0
+      ],
       "image": [
         "28",
         0
@@ -194,7 +198,10 @@
   },
   "17": {
     "inputs": {
-      "noise_seed": 404278042934208
+      "noise_seed": [
+        "30",
+        0
+      ]
     },
     "class_type": "RandomNoise",
     "_meta": {
@@ -238,7 +245,7 @@
         1
       ],
       "model": [
-        "11",
+        "29",
         0
       ]
     },
@@ -281,8 +288,8 @@
   },
   "23": {
     "inputs": {
-      "width": 720,
-      "height": 1280,
+      "width": 768,
+      "height": 1344,
       "aspect_ratio": "custom",
       "swap_dimensions": "Off",
       "upscale_factor": 1,
@@ -335,6 +342,29 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "Load Image"
+    }
+  },
+  "29": {
+    "inputs": {
+      "lora_name": "aidmaMJ6.1-FLUX-V0.3.safetensors",
+      "strength_model": 1,
+      "model": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
+    }
+  },
+  "30": {
+    "inputs": {
+      "seed": -1
+    },
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
     }
   }
 }

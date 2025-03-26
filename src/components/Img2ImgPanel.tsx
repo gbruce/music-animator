@@ -215,7 +215,7 @@ const Img2ImgPanel: React.FC = () => {
           
           // Update seed for each iteration
           const newSeed = Math.floor(Math.random() * 999999999);
-          workflowCopy[17].inputs.noise_seed = newSeed;
+          workflowCopy[30].inputs.seed = newSeed;
           logger.log(`Using new random seed for image ${i+1}: ${newSeed}`);
 
           workflowCopy[23].inputs.swap_dimensions = orientation === 'portrait' ? 'Off' : 'On';
