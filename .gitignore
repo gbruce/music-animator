@@ -50,3 +50,6 @@ Thumbs.db
 # server files
 server/prisma
 server/uploads
+
+#vite
+cert/
