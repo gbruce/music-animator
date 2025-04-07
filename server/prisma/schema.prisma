@@ -132,6 +132,8 @@ model Video {
   id              String    @id @default(uuid())
   identifier      String    @unique
   filePath        String
+  thumbnailPath   String?
+  fullImagePath   String?
   duration        Float     // Duration in seconds
   fileSize        Int
   videoType       String

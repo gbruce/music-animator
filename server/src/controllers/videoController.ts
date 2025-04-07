@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { promisify } from 'util';
 import ytdl from '@distube/ytdl-core';
 import { getVideoDurationInSeconds } from 'get-video-duration';
+import ffmpeg from 'fluent-ffmpeg';
 
 const prisma = new PrismaClient();
 const mkdir = promisify(fs.mkdir);
@@ -29,6 +30,101 @@ const initializeStorage = async (): Promise<void> => {
 
 // Initialize storage on startup
 initializeStorage().catch(console.error);
+
+interface VideoStream {
+  codec_type: string;
+  width?: number;
+  height?: number;
+}
+
+interface FFProbeMetadata {
+  streams: VideoStream[];
+}
+
+// Get video dimensions
+const getVideoDimensions = (videoPath: string): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (err: Error | null, metadata: FFProbeMetadata) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      
+      const videoStream = metadata.streams.find((stream: VideoStream) => stream.codec_type === 'video');
+      if (!videoStream) {
+        reject(new Error('No video stream found'));
+        return;
+      }
+      
+      resolve({
+        width: videoStream.width || 0,
+        height: videoStream.height || 0
+      });
+    });
+  });
+};
+
+// Generate a thumbnail from a video file
+const generateThumbnail = async (videoPath: string, outputPath: string): Promise<{ thumbnailPath: string; fullImagePath: string }> => {
+  try {
+    // Get video dimensions
+    const { width, height } = await getVideoDimensions(videoPath);
+    
+    // Calculate thumbnail size while maintaining aspect ratio
+    const maxWidth = 320;
+    const maxHeight = 180;
+    let thumbnailWidth = maxWidth;
+    let thumbnailHeight = maxHeight;
+    
+    if (width && height) {
+      const aspectRatio = width / height;
+      if (aspectRatio > maxWidth / maxHeight) {
+        thumbnailHeight = Math.round(maxWidth / aspectRatio);
+      } else {
+        thumbnailWidth = Math.round(maxHeight * aspectRatio);
+      }
+    }
+    
+    // Generate thumbnail-sized version
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(videoPath)
+        .screenshots({
+          timestamps: ['0'],
+          filename: path.basename(outputPath),
+          folder: path.dirname(outputPath),
+          size: `${thumbnailWidth}x${thumbnailHeight}`
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    // Generate full-sized version
+    const fullSizePath = path.join(
+      path.dirname(outputPath),
+      `${path.basename(outputPath, '.jpg')}_full.jpg`
+    );
+    
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(videoPath)
+        .screenshots({
+          timestamps: ['0'],
+          filename: path.basename(fullSizePath),
+          folder: path.dirname(fullSizePath),
+          size: width && height ? `${width}x${height}` : undefined
+        })
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    return {
+      thumbnailPath: outputPath,
+      fullImagePath: fullSizePath
+    };
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    throw error;
+  }
+};
 
 export const videoController = {
   // Upload a new video from file
@@ -58,6 +154,10 @@ export const videoController = {
       const videoPath = path.join(videoDir, filename);
       await writeFile(videoPath, req.file.buffer);
 
+      // Generate thumbnail and full image
+      const thumbnailPath = path.join(videoDir, `${identifier}.jpg`);
+      const { thumbnailPath: generatedThumbnailPath, fullImagePath } = await generateThumbnail(videoPath, thumbnailPath);
+
       // Get video duration
       const duration = await getVideoDurationInSeconds(videoPath);
 
@@ -86,6 +186,8 @@ export const videoController = {
         data: {
           identifier,
           filePath: videoPath,
+          thumbnailPath: generatedThumbnailPath,
+          fullImagePath,
           duration,
           fileSize: req.file.size,
           videoType: req.file.mimetype,
@@ -103,7 +205,9 @@ export const videoController = {
         fileSize: video.fileSize,
         videoType: video.videoType,
         uploadDate: video.uploadDate,
-        folderId: video.folderId
+        folderId: video.folderId,
+        thumbnailPath: video.thumbnailPath,
+        fullImagePath: video.fullImagePath
       });
     } catch (error) {
       console.error('Error uploading video:', error);
@@ -154,6 +258,10 @@ export const videoController = {
         videoStream.on('error', reject);
       });
 
+      // Generate thumbnail and full image
+      const thumbnailPath = path.join(videoDir, `${identifier}.jpg`);
+      const { thumbnailPath: generatedThumbnailPath, fullImagePath } = await generateThumbnail(videoPath, thumbnailPath);
+
       // Get video duration and file size
       const duration = await getVideoDurationInSeconds(videoPath);
       const fileSize = fs.statSync(videoPath).size;
@@ -183,6 +291,8 @@ export const videoController = {
         data: {
           identifier,
           filePath: videoPath,
+          thumbnailPath: generatedThumbnailPath,
+          fullImagePath,
           duration,
           fileSize,
           videoType: 'video/mp4',
@@ -201,6 +311,8 @@ export const videoController = {
         videoType: video.videoType,
         uploadDate: video.uploadDate,
         folderId: video.folderId,
+        thumbnailPath: video.thumbnailPath,
+        fullImagePath: video.fullImagePath,
         youtubeInfo: {
           title: info.videoDetails.title,
           author: info.videoDetails.author,
@@ -364,6 +476,76 @@ export const videoController = {
     } catch (error) {
       console.error('Error moving videos:', error);
       res.status(500).json({ error: 'Failed to move videos' });
+    }
+  },
+
+  // Get video thumbnail
+  async getVideoThumbnail(req: Request, res: Response): Promise<void> {
+    try {
+      const { identifier } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const video = await prisma.video.findFirst({
+        where: {
+          identifier,
+          userId
+        }
+      });
+
+      if (!video) {
+        res.status(404).json({ error: 'Video not found' });
+        return;
+      }
+
+      if (!video.thumbnailPath) {
+        res.status(404).json({ error: 'Thumbnail not found' });
+        return;
+      }
+
+      res.sendFile(video.thumbnailPath);
+    } catch (error) {
+      console.error('Error getting video thumbnail:', error);
+      res.status(500).json({ error: 'Failed to get video thumbnail' });
+    }
+  },
+
+  // Get video full image
+  async getVideoFullImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { identifier } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const video = await prisma.video.findFirst({
+        where: {
+          identifier,
+          userId
+        }
+      });
+
+      if (!video) {
+        res.status(404).json({ error: 'Video not found' });
+        return;
+      }
+
+      if (!video.fullImagePath) {
+        res.status(404).json({ error: 'Full image not found' });
+        return;
+      }
+
+      res.sendFile(video.fullImagePath);
+    } catch (error) {
+      console.error('Error getting video full image:', error);
+      res.status(500).json({ error: 'Failed to get video full image' });
     }
   }
 }; 

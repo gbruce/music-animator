@@ -36,6 +36,12 @@ router.get('/', videoController.getUserVideos);
 // Get video by identifier
 router.get('/:identifier', videoController.getVideoByIdentifier);
 
+// Get video thumbnail
+router.get('/:identifier/thumbnail', videoController.getVideoThumbnail);
+
+// Get video full image
+router.get('/:identifier/full-image', videoController.getVideoFullImage);
+
 // Delete a video
 router.delete('/:identifier', videoController.deleteVideo);
 
