@@ -138,6 +138,22 @@ export interface Folder {
   updatedAt?: string;
 }
 
+export interface Video {
+  id: string;
+  identifier: string;
+  filename: string;
+  duration: number;
+  fileSize: number;
+  videoType: string;
+  uploadDate: string;
+  folderId: string | null;
+  youtubeInfo?: {
+    title: string;
+    author: string;
+    lengthSeconds: number;
+  };
+}
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -389,5 +405,43 @@ export const imageApi = {
       console.error('Move images error:', error);
       throw error;
     }
+  }
+};
+
+export const videoApi = {
+  async list(folderId?: string): Promise<Video[]> {
+    const url = folderId ? `/videos?folderId=${folderId}` : '/videos';
+    const response = await api.get<Video[]>(url);
+    return response.data;
+  },
+
+  async upload(file: File, folderId?: string): Promise<Video> {
+    const formData = new FormData();
+    formData.append('video', file);
+    if (folderId) {
+      formData.append('folderId', folderId);
+    }
+
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    };
+
+    const response = await api.post<Video>('/videos/upload', formData, config);
+    return response.data;
+  },
+
+  async downloadFromYouTube(url: string, folderId?: string): Promise<Video> {
+    const response = await api.post<Video>('/videos/youtube', { url, folderId });
+    return response.data;
+  },
+
+  async delete(identifier: string): Promise<void> {
+    await api.delete(`/videos/${identifier}`);
+  },
+
+  async move(identifiers: string[], folderId: string | null): Promise<void> {
+    await api.post('/videos/move', { identifiers, folderId });
   }
 }; 
