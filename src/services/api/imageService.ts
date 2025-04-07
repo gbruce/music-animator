@@ -1,10 +1,7 @@
-import { Image, IImage } from './models/Image';
+import { Image } from './models/Image';
 import { v4 as uuidv4 } from 'uuid';
-import { saveFile, deleteFile } from '../fileStorage';
 import sizeOf from 'image-size';
 import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
 
 const sizeOfPromise = promisify(sizeOf);
 
@@ -37,7 +34,7 @@ export const imageService = {
     const identifier = uuidv4();
     
     // Save file to disk
-    const filePath = await saveFile(buffer, filename, userId);
+    const filePath = 'TODO: remove this';
     
     // Get image dimensions
     const dimensions = await sizeOfPromise(buffer);
@@ -117,9 +114,6 @@ export const imageService = {
     if (!image) {
       return false;
     }
-    
-    // Delete file from disk
-    await deleteFile(image.filePath);
     
     // Remove from database
     await Image.deleteOne({ identifier });
