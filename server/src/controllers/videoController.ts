@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { promisify } from 'util';
+import ytdl from '@distube/ytdl-core';
 import { getVideoDurationInSeconds } from 'get-video-duration';
 
 const prisma = new PrismaClient();
@@ -30,7 +31,7 @@ const initializeStorage = async (): Promise<void> => {
 initializeStorage().catch(console.error);
 
 export const videoController = {
-  // Upload a new video
+  // Upload a new video from file
   async uploadVideo(req: Request, res: Response): Promise<void> {
     try {
       if (!req.file) {
@@ -103,6 +104,103 @@ export const videoController = {
     } catch (error) {
       console.error('Error uploading video:', error);
       res.status(500).json({ error: 'Failed to upload video' });
+    }
+  },
+
+  // Download and save a YouTube video
+  async downloadYouTubeVideo(req: Request, res: Response): Promise<void> {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        res.status(400).json({ error: 'YouTube URL is required' });
+        return;
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Get video info
+      const info = await ytdl.getInfo(url);
+      const videoFormat = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+
+      // Generate a unique identifier for the video
+      const identifier = crypto.randomBytes(16).toString('hex');
+      const fileExt = '.mp4';
+      const filename = `${identifier}${fileExt}`;
+      const filePath = path.join(UPLOAD_DIR, filename);
+
+      // Download and save the video
+      await new Promise<void>((resolve, reject) => {
+        const videoStream = ytdl(url, { format: videoFormat });
+        const writeStream = fs.createWriteStream(filePath);
+        
+        videoStream.pipe(writeStream);
+        
+        writeStream.on('finish', () => resolve());
+        writeStream.on('error', reject);
+        videoStream.on('error', reject);
+      });
+
+      // Get video duration and file size
+      const duration = await getVideoDurationInSeconds(filePath);
+      const fileSize = fs.statSync(filePath).size;
+
+      // Extract folder ID from request if present
+      const folderId = req.body.folderId || null;
+      
+      // Check if folder exists and belongs to the user (if folderId is provided)
+      if (folderId) {
+        const folder = await prisma.folder.findUnique({
+          where: { id: folderId }
+        });
+        
+        if (!folder) {
+          res.status(404).json({ error: 'Folder not found' });
+          return;
+        }
+        
+        if (folder.userId !== userId) {
+          res.status(403).json({ error: 'Access denied to folder' });
+          return;
+        }
+      }
+
+      // Create a record in the database
+      const video = await prisma.video.create({
+        data: {
+          identifier,
+          filePath,
+          duration,
+          fileSize,
+          videoType: 'video/mp4',
+          filename: `${info.videoDetails.title}.mp4`,
+          userId,
+          folderId
+        }
+      });
+
+      res.status(201).json({
+        id: video.id,
+        identifier: video.identifier,
+        filename: video.filename,
+        duration: video.duration,
+        fileSize: video.fileSize,
+        videoType: video.videoType,
+        uploadDate: video.uploadDate,
+        folderId: video.folderId,
+        youtubeInfo: {
+          title: info.videoDetails.title,
+          author: info.videoDetails.author,
+          lengthSeconds: info.videoDetails.lengthSeconds,
+        }
+      });
+
+    } catch (error) {
+      console.error('Error downloading YouTube video:', error);
+      res.status(500).json({ error: 'Failed to download YouTube video' });
     }
   },
 

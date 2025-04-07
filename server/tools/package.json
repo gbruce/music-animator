@@ -9,6 +9,7 @@
   },
   "scripts": {
     "login": "node login.js",
-    "test-video": "node test-video-api.js"
+    "test-video": "node test-video-api.js",
+    "test-youtube": "node test-youtube-download.js"
   }
 } 

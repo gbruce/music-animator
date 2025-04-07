@@ -24,8 +24,11 @@ const upload = multer({
 // Routes that require authentication
 router.use(auth);
 
-// Upload a new video
+// Upload a new video from file
 router.post('/upload', upload.single('video'), videoController.uploadVideo);
+
+// Download and save a YouTube video
+router.post('/youtube', videoController.downloadYouTubeVideo);
 
 // Get all videos for the current user
 router.get('/', videoController.getUserVideos);
