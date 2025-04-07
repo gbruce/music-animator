@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import { useComfyUI } from '../contexts/ComfyUIContext';
-import WorkflowStatusDisplay from './WorkflowStatusDisplay';
 import flux from './flux-workflow.json';
+import { Client } from '@stable-canvas/comfyui-client';
 
 // Custom hook to use ComfyUI workflow with the global client
-export const useComfyUIWorkflow = (trackId: string, onComplete?: (result: any) => void) => {
+export const useComfyUIWorkflow = (trackId: string, onBeforeQueueing?: (client: Client) => Promise<void>) => {
   const { status, statusMessage, progress, runWorkflow } = useComfyUI();
 
   // Function to run the workflow
@@ -15,12 +15,12 @@ export const useComfyUIWorkflow = (trackId: string, onComplete?: (result: any) =
       workflowCopy[25].inputs.noise_seed = Math.floor(Math.random() * 1000);
       
       // Run the workflow using the global client
-      return await runWorkflow(workflowCopy, onComplete);
+      return await runWorkflow(workflowCopy, onBeforeQueueing);
     } catch (error) {
       console.error('Error running track workflow:', error);
       throw error;
     }
-  }, [onComplete, runWorkflow, trackId]);
+  }, [onBeforeQueueing, runWorkflow, trackId]);
 
   return {
     status,
