@@ -49,13 +49,17 @@ export const videoController = {
       const identifier = crypto.randomBytes(16).toString('hex');
       const fileExt = path.extname(req.file.originalname).toLowerCase();
       const filename = `${identifier}${fileExt}`;
-      const filePath = path.join(UPLOAD_DIR, filename);
-
-      // Save the file to disk
-      await writeFile(filePath, req.file.buffer);
+      
+      // Create a directory for this video
+      const videoDir = path.join(UPLOAD_DIR, identifier);
+      await mkdir(videoDir, { recursive: true });
+      
+      // Save the video file
+      const videoPath = path.join(videoDir, filename);
+      await writeFile(videoPath, req.file.buffer);
 
       // Get video duration
-      const duration = await getVideoDurationInSeconds(filePath);
+      const duration = await getVideoDurationInSeconds(videoPath);
 
       // Extract folder ID from request if present
       const folderId = req.body.folderId || null;
@@ -81,7 +85,7 @@ export const videoController = {
       const video = await prisma.video.create({
         data: {
           identifier,
-          filePath,
+          filePath: videoPath,
           duration,
           fileSize: req.file.size,
           videoType: req.file.mimetype,
@@ -130,12 +134,18 @@ export const videoController = {
       const identifier = crypto.randomBytes(16).toString('hex');
       const fileExt = '.mp4';
       const filename = `${identifier}${fileExt}`;
-      const filePath = path.join(UPLOAD_DIR, filename);
+      
+      // Create a directory for this video
+      const videoDir = path.join(UPLOAD_DIR, identifier);
+      await mkdir(videoDir, { recursive: true });
+      
+      // Save the video file
+      const videoPath = path.join(videoDir, filename);
 
       // Download and save the video
       await new Promise<void>((resolve, reject) => {
         const videoStream = ytdl(url, { format: videoFormat });
-        const writeStream = fs.createWriteStream(filePath);
+        const writeStream = fs.createWriteStream(videoPath);
         
         videoStream.pipe(writeStream);
         
@@ -145,8 +155,8 @@ export const videoController = {
       });
 
       // Get video duration and file size
-      const duration = await getVideoDurationInSeconds(filePath);
-      const fileSize = fs.statSync(filePath).size;
+      const duration = await getVideoDurationInSeconds(videoPath);
+      const fileSize = fs.statSync(videoPath).size;
 
       // Extract folder ID from request if present
       const folderId = req.body.folderId || null;
@@ -172,7 +182,7 @@ export const videoController = {
       const video = await prisma.video.create({
         data: {
           identifier,
-          filePath,
+          filePath: videoPath,
           duration,
           fileSize,
           videoType: 'video/mp4',
@@ -293,9 +303,10 @@ export const videoController = {
         }
       });
 
-      // Delete the file from disk
-      if (fs.existsSync(video.filePath)) {
-        await unlink(video.filePath);
+      // Delete the video directory and all its contents
+      const videoDir = path.dirname(video.filePath);
+      if (fs.existsSync(videoDir)) {
+        fs.rmSync(videoDir, { recursive: true, force: true });
       }
 
       res.status(204).send();
