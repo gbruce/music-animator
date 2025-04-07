@@ -37,7 +37,7 @@ export const imageService = {
     const filePath = 'TODO: remove this';
     
     // Get image dimensions
-    const dimensions = await sizeOfPromise(buffer);
+    const dimensions = await sizeOfPromise(buffer) as { height: number, width: number };
     
     // Create image record in database
     const image = new Image({
@@ -54,7 +54,7 @@ export const imageService = {
     await image.save();
     
     return {
-      id: image._id.toString(),
+      id: image.id.toString(),
       identifier: image.identifier,
       filePath: image.filePath,
       height: image.height,
@@ -76,7 +76,7 @@ export const imageService = {
     }
     
     return {
-      id: image._id.toString(),
+      id: image.id.toString(),
       identifier: image.identifier,
       filePath: image.filePath,
       height: image.height,
@@ -94,7 +94,7 @@ export const imageService = {
     const images = await Image.find({ userId });
     
     return images.map(image => ({
-      id: image._id.toString(),
+      id: image.id.toString(),
       identifier: image.identifier,
       filePath: image.filePath,
       height: image.height,
