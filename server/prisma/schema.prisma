@@ -18,6 +18,7 @@ model User {
   updatedAt       DateTime  @updatedAt
   projects        Project[]
   images          Image[]
+  videos          Video[]
   folders         Folder[]
 }
 
@@ -119,9 +120,30 @@ model Folder {
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   images          Image[]
+  videos          Video[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   @@index([userId])
   @@index([parentId])
+}
+
+model Video {
+  id              String    @id @default(uuid())
+  identifier      String    @unique
+  filePath        String
+  duration        Float     // Duration in seconds
+  fileSize        Int
+  videoType       String
+  filename        String
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId        String?
+  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadDate      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([identifier])
+  @@index([folderId])
 } 

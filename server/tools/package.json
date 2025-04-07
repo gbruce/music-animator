@@ -1,0 +1,14 @@
+{
+  "name": "music-animator-tools",
+  "version": "1.0.0",
+  "description": "Tools for Music Animator",
+  "private": true,
+  "dependencies": {
+    "node-fetch": "^2.7.0",
+    "form-data": "^4.0.0"
+  },
+  "scripts": {
+    "login": "node login.js",
+    "test-video": "node test-video-api.js"
+  }
+} 
