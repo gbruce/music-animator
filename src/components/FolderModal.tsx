@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Folder } from '../services/api';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 
 interface FolderModalProps {

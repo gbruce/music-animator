@@ -21,7 +21,6 @@ import {
   IconButton,
   InputLabel, 
   MenuItem, 
-  Paper, 
   Select, 
   Tab, 
   Tabs, 
@@ -51,7 +50,6 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     currentProject, 
     setCurrentProject, 
     createProject, 
-    loading: projectsLoading 
   } = useProjects();
   
   const [openNewProjectDialog, setOpenNewProjectDialog] = useState(false);
@@ -92,10 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     }
   };
 
-  const handleOpenNewProjectDialog = () => {
-    setOpenNewProjectDialog(true);
-  };
-
+  
   const handleCloseNewProjectDialog = () => {
     setOpenNewProjectDialog(false);
     setNewProjectName('');

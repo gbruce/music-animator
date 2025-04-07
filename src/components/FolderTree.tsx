@@ -20,7 +20,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder, ha
   const [draggingFolder, setDraggingFolder] = useState<string | null>(null);
   const [dropTargetFolder, setDropTargetFolder] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<TimeoutRef>(null);
 
   // Load user's folder preferences
@@ -28,10 +27,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder, ha
     const loadFolders = async () => {
       if (!user) return;
       
-      try {
-        // Use getFolders instead of getUserFolderPreferences
-        const userFolders = await imageApi.getFolders();
-        
+      try {        
         // You can still maintain the open folders state from localStorage
         const userId = user.id || 'anonymous';
         const key = `folder-prefs-${userId}`;
@@ -242,7 +238,6 @@ const FolderTree: React.FC<FolderTreeProps> = ({ onAddFolder, onRenameFolder, ha
     const existingFolderIds = new Set(folders.map(folder => folder.id));
     
     // Check if there are any openFolders that no longer exist
-    let hasOrphans = false;
     const orphanedFolders = Array.from(openFolders).filter(id => !existingFolderIds.has(id));
     
     if (orphanedFolders.length > 0) {
