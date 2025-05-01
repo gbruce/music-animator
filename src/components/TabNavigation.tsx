@@ -1,7 +1,7 @@
 import React from 'react';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 
-export type Tab = 'projects' | 'images' | 'txt2img';
+export type Tab = 'projects' | 'images' | 'txt2img' | 'img2img' | 'anims';
 
 interface TabNavigationProps {
   activeTab: Tab;
@@ -28,6 +28,18 @@ const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange })
         onClick={() => onTabChange('txt2img')}
       >
         Txt2Img
+      </div>
+      <div
+        className={`${styles.tab} ${activeTab === 'img2img' ? styles.activeTab : ''}`}
+        onClick={() => onTabChange('img2img')}
+      >
+        Img2Img
+      </div>
+      <div
+        className={`${styles.tab} ${activeTab === 'anims' ? styles.activeTab : ''}`}
+        onClick={() => onTabChange('anims')}
+      >
+        ANIMS
       </div>
     </div>
   );

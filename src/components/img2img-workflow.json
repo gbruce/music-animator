@@ -347,7 +347,7 @@
   "29": {
     "inputs": {
       "lora_name": "aidmaMJ6.1-FLUX-V0.3.safetensors",
-      "strength_model": 1,
+      "strength_model": 0.5,
       "model": [
         "11",
         0

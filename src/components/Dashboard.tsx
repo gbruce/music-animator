@@ -8,6 +8,7 @@ import Images from './Images';
 import { Videos } from './Videos';
 import Txt2ImgPanel from './Txt2ImgPanel';
 import Img2ImgPanel from './Img2ImgPanel';
+import AnimsPanel from './AnimsPanel';
 import { 
   AppBar, 
   Box, 
@@ -37,11 +38,11 @@ import {
 } from '@mui/icons-material';
 
 interface DashboardProps {
-  activeTab: 'projects' | 'images' | 'videos' | 'txt2img' | 'img2img';
+  activeTab: 'projects' | 'images' | 'videos' | 'txt2img' | 'img2img' | 'anims';
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) => {
-  const [activeTab, setActiveTab] = useState<'projects' | 'images' | 'videos' | 'txt2img' | 'img2img'>(initialActiveTab);
+  const [activeTab, setActiveTab] = useState<'projects' | 'images' | 'videos' | 'txt2img' | 'img2img' | 'anims'>(initialActiveTab);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
@@ -63,7 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
     setActiveTab(initialActiveTab);
   }, [initialActiveTab]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images' | 'videos' | 'txt2img' | 'img2img') => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 'projects' | 'images' | 'videos' | 'txt2img' | 'img2img' | 'anims') => {
     setActiveTab(newValue);
     if (newValue === 'images') {
       navigate('/images');
@@ -73,6 +74,8 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
       navigate('/txt2img');
     } else if (newValue === 'img2img') {
       navigate('/img2img');
+    } else if (newValue === 'anims') {
+      navigate('/anims');
     } else {
       navigate('/');
     }
@@ -181,6 +184,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
           <Tab label="Videos" value="videos" />
           <Tab label="Txt2Img" value="txt2img" />
           <Tab label="Img2Img" value="img2img" />
+          <Tab label="ANIMS" value="anims" />
         </Tabs>
       </AppBar>
 
@@ -193,8 +197,10 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTab: initialActiveTab }) =>
           <Videos />
         ) : activeTab === 'txt2img' ? (
           <Txt2ImgPanel />
-        ) : (
+        ) : activeTab === 'img2img' ? (
           <Img2ImgPanel />
+        ) : (
+          <AnimsPanel />
         )}
       </Container>
 

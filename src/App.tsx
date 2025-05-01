@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ComfyUIProvider } from './contexts/ComfyUIContext';
 import { Txt2ImgProvider } from './contexts/Txt2ImgContext';
 import { Img2ImgProvider } from './contexts/Img2ImgContext';
+import { AnimsProvider } from './contexts/AnimsContext';
 import { Login } from './components/Login';
 import { Signup } from './components/Signup';
 import { Profile } from './components/Profile';
@@ -48,82 +49,92 @@ const App: React.FC = () => {
                   <ComfyUIProvider>
                     <Txt2ImgProvider>
                       <Img2ImgProvider>
-                        <Router>
-                          <Routes>
-                            <Route
-                              path="/"
-                              element={
-                                <PrivateRoute>
-                                  <Dashboard activeTab="projects" />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/images"
-                              element={
-                                <PrivateRoute>
-                                  <Dashboard activeTab="images" />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/videos"
-                              element={
-                                <PrivateRoute>
-                                  <Dashboard activeTab="videos" />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/txt2img"
-                              element={
-                                <PrivateRoute>
-                                  <Dashboard activeTab="txt2img" />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/img2img"
-                              element={
-                                <PrivateRoute>
-                                  <Dashboard activeTab="img2img" />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/profile"
-                              element={
-                                <PrivateRoute>
-                                  <Profile />
-                                </PrivateRoute>
-                              }
-                            />
-                            <Route
-                              path="/login"
-                              element={
-                                <PublicRoute>
-                                  <Login />
-                                </PublicRoute>
-                              }
-                            />
-                            <Route
-                              path="/signup"
-                              element={
-                                <PublicRoute>
-                                  <Signup />
-                                </PublicRoute>
-                              }
-                            />
-                            <Route
-                              path="/forgot-password"
-                              element={
-                                <PublicRoute>
-                                  <ForgotPassword />
-                                </PublicRoute>
-                              }
-                            />
-                          </Routes>
-                        </Router>
+                        <AnimsProvider>
+                          <Router>
+                            <Routes>
+                              <Route
+                                path="/"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="projects" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/images"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="images" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/videos"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="videos" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/txt2img"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="txt2img" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/img2img"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="img2img" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/anims"
+                                element={
+                                  <PrivateRoute>
+                                    <Dashboard activeTab="anims" />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/profile"
+                                element={
+                                  <PrivateRoute>
+                                    <Profile />
+                                  </PrivateRoute>
+                                }
+                              />
+                              <Route
+                                path="/login"
+                                element={
+                                  <PublicRoute>
+                                    <Login />
+                                  </PublicRoute>
+                                }
+                              />
+                              <Route
+                                path="/signup"
+                                element={
+                                  <PublicRoute>
+                                    <Signup />
+                                  </PublicRoute>
+                                }
+                              />
+                              <Route
+                                path="/forgot-password"
+                                element={
+                                  <PublicRoute>
+                                    <ForgotPassword />
+                                  </PublicRoute>
+                                }
+                              />
+                            </Routes>
+                          </Router>
+                        </AnimsProvider>
                       </Img2ImgProvider>
                     </Txt2ImgProvider>
                   </ComfyUIProvider>
