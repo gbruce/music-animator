@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BPM Detector Test</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .button {
+            padding: 10px 20px;
+            margin: 10px 0;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        
+        .button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin: 5px 0;
+        }
+        
+        #fileInput {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>BPM Detector Test</h1>
+    <input type="file" id="fileInput" accept="audio/*">
+    <button id="detectButton" class="button" disabled>Detect BPM</button>
+    <div id="results"></div>
+
+    <script type="module">
+        // Import dependencies using Vite's import syntax
+        import { guess as guessBPM } from 'web-audio-beat-detector';
+
+        const resultsDiv = document.getElementById('results');
+        const fileInput = document.getElementById('fileInput');
+        const detectButton = document.getElementById('detectButton');
+        
+        // Store the audio buffer globally so we can access it when the button is clicked
+        let currentAudioBuffer = null;
+
+        function addResult(title, content) {
+            const div = document.createElement('div');
+            div.className = 'result';
+            div.innerHTML = `<strong>${title}:</strong> ${content}`;
+            resultsDiv.appendChild(div);
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        function findMinMaxAndNonZero(data) {
+            let min = Infinity;
+            let max = -Infinity;
+            let hasNonZero = false;
+            
+            for (let i = 0; i < data.length; i++) {
+                const value = data[i];
+                if (value < min) min = value;
+                if (value > max) max = value;
+                if (value !== 0) hasNonZero = true;
+            }
+            
+            return { min, max, hasNonZero };
+        }
+
+        function sanitizeAudioData(data) {
+            let nonFiniteCount = 0;
+            const sanitized = new Float32Array(data.length);
+            
+            for (let i = 0; i < data.length; i++) {
+                const sample = data[i];
+                if (!Number.isFinite(sample) || Number.isNaN(sample)) {
+                    nonFiniteCount++;
+                    sanitized[i] = 0;
+                } else {
+                    sanitized[i] = Math.max(-0.99, Math.min(0.99, sample));
+                }
+            }
+            
+            if (nonFiniteCount > 0) {
+                addResult('Sanitize', `Replaced ${nonFiniteCount} non-finite samples with 0`);
+            }
+            
+            return sanitized;
+        }
+
+        function processAudioToMono(buffer) {
+            const length = buffer.length;
+            const numChannels = buffer.numberOfChannels;
+            const output = new Float32Array(length);
+            let totalSamples = 0;
+            let validSamplesTotal = 0;
+            
+            for (let i = 0; i < length; i++) {
+                let sum = 0;
+                let validSamples = 0;
+                
+                for (let channel = 0; channel < numChannels; channel++) {
+                    const sample = buffer.getChannelData(channel)[i];
+                    if (Number.isFinite(sample) && !Number.isNaN(sample)) {
+                        sum += sample;
+                        validSamples++;
+                    }
+                }
+                
+                totalSamples++;
+                if (validSamples > 0) {
+                    validSamplesTotal++;
+                    output[i] = sum / validSamples;
+                } else {
+                    output[i] = 0;
+                }
+            }
+            
+            addResult('Mono Conversion', `Processed ${totalSamples} samples, ${validSamplesTotal} contained valid data`);
+            return sanitizeAudioData(output);
+        }
+
+        function normalizeAudio(samples) {
+            let maxAmp = 0;
+            let sumSquared = 0;
+            
+            // Calculate statistics
+            for (let i = 0; i < samples.length; i++) {
+                const abs = Math.abs(samples[i]);
+                maxAmp = Math.max(maxAmp, abs);
+                sumSquared += samples[i] * samples[i];
+            }
+            
+            const rms = Math.sqrt(sumSquared / samples.length);
+            addResult('Audio Stats', `Peak: ${maxAmp.toFixed(6)}, RMS: ${rms.toFixed(6)}`);
+            
+            // Normalize to leave some headroom
+            const scalar = maxAmp > 0 ? 0.99 / maxAmp : 1;
+            const normalized = new Float32Array(samples.length);
+            
+            // Normalize without using map
+            for (let i = 0; i < samples.length; i++) {
+                normalized[i] = samples[i] * scalar;
+            }
+            
+            // Verify normalization
+            let maxAfterNorm = Math.abs(normalized[0]);
+            for (let i = 1; i < normalized.length; i++) {
+                const abs = Math.abs(normalized[i]);
+                if (abs > maxAfterNorm) {
+                    maxAfterNorm = abs;
+                }
+            }
+            
+            addResult('Normalization', `Max amplitude after normalization: ${maxAfterNorm.toFixed(6)}`);
+            return normalized;
+        }
+
+        async function createValidAudioBuffer(audioContext, samples, sampleRate) {
+            // Create a new buffer with known good parameters
+            const newBuffer = audioContext.createBuffer(1, samples.length, sampleRate);
+            
+            try {
+                // Fill the buffer with our processed samples
+                const channelData = newBuffer.getChannelData(0);
+                channelData.set(samples);
+                
+                // Verify the buffer
+                const stats = findMinMaxAndNonZero(channelData);
+                
+                addResult('Buffer Validation', 
+                    `Min: ${stats.min.toFixed(6)}, Max: ${stats.max.toFixed(6)}, ` +
+                    `Has non-zero values: ${stats.hasNonZero}`
+                );
+                
+                if (!stats.hasNonZero) {
+                    throw new Error('Buffer contains only zero values');
+                }
+                
+                return newBuffer;
+            } catch (error) {
+                addResult('Error', `Buffer creation failed: ${error.message}`);
+                throw error;
+            }
+        }
+
+        async function detectBPM(audioBuffer) {
+            try {
+                addResult('Processing', 'Converting audio to mono...');
+                const monoSamples = processAudioToMono(audioBuffer);
+                
+                addResult('Processing', 'Normalizing audio...');
+                const normalizedSamples = normalizeAudio(monoSamples);
+                
+                addResult('Status', 'Creating audio context for beat detection...');
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                addResult('Status', 'Creating valid audio buffer...');
+                const validBuffer = await createValidAudioBuffer(
+                    audioContext,
+                    normalizedSamples,
+                    audioBuffer.sampleRate
+                );
+
+                addResult('Status', 'Analyzing with Web Audio Beat Detector...');
+                const result = await guessBPM(validBuffer);
+                
+                // Handle both object and number responses
+                let bpm;
+                if (typeof result === 'object' && result !== null) {
+                    // If it's an object, try to get the tempo/bpm property
+                    if (result.tempo) {
+                        bpm = result.tempo;
+                    } else if (result.bpm) {
+                        bpm = result.bpm;
+                    } else {
+                        // Log all available properties
+                        const props = Object.keys(result).join(', ');
+                        throw new Error(`No tempo/bpm found in result. Available properties: ${props}`);
+                    }
+                } else {
+                    bpm = result;
+                }
+                
+                if (!Number.isFinite(bpm) || bpm <= 0) {
+                    throw new Error(`Invalid BPM value: ${bpm}`);
+                }
+                
+                addResult('Results', `<h2>BPM: ${bpm.toFixed(1)}</h2>`);
+
+            } catch (error) {
+                addResult('Error', `${error.name}: ${error.message}`);
+                if (error.stack) {
+                    addResult('Stack Trace', error.stack.split('\n')[0]);
+                }
+            } finally {
+                // Re-enable the button after processing is complete
+                detectButton.disabled = false;
+            }
+        }
+
+        // Handle file selection
+        fileInput.addEventListener('change', async (event) => {
+            clearResults();
+            detectButton.disabled = true;
+            currentAudioBuffer = null;
+            
+            const file = event.target.files[0];
+            if (!file) return;
+
+            addResult('File', file.name);
+            addResult('Size', `${(file.size / 1024).toFixed(2)} KB`);
+
+            try {
+                addResult('Status', 'Loading audio file...');
+                const arrayBuffer = await file.arrayBuffer();
+                const audioContext = new AudioContext();
+                currentAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+                addResult('Duration', `${currentAudioBuffer.duration.toFixed(2)} seconds`);
+                addResult('Sample Rate', `${currentAudioBuffer.sampleRate} Hz`);
+                addResult('Channels', currentAudioBuffer.numberOfChannels);
+                
+                // Enable the detect button now that we have a valid audio buffer
+                detectButton.disabled = false;
+            } catch (error) {
+                addResult('Error', error.message);
+            }
+        });
+
+        // Handle detect button click
+        detectButton.addEventListener('click', async () => {
+            if (!currentAudioBuffer) {
+                addResult('Error', 'No audio file loaded');
+                return;
+            }
+            
+            // Disable the button while processing
+            detectButton.disabled = true;
+            clearResults();
+            
+            await detectBPM(currentAudioBuffer);
+        });
+    </script>
+</body>
+</html> 

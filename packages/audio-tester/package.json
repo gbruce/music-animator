@@ -1,0 +1,42 @@
+{
+  "name": "audio-tester",
+  "version": "1.0.0",
+  "description": "Audio testing utilities for music-animator",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "watch": "tsc --watch",
+    "test": "node --loader ts-node/esm --test test/**/*.test.ts",
+    "clean": "rimraf dist",
+    "test-bpm": "node --loader ts-node/esm src/bpmTest.ts",
+    "generate-test-audio": "node --loader ts-node/esm src/generateTestAudio.ts",
+    "simple-test": "node --loader ts-node/esm src/simpleTest.ts",
+    "detective-test": "node --loader ts-node/esm src/detectiveTest.ts",
+    "detective-test-cjs": "node src/detectiveTest.cjs",
+    "serve": "vite"
+  },
+  "keywords": [
+    "audio",
+    "testing",
+    "music-animator"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.17.32",
+    "rimraf": "^5.0.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vite": "^6.3.4"
+  },
+  "dependencies": {
+    "aubiojs": "^0.2.1",
+    "audio-decode": "^2.2.2",
+    "bpm-detective": "^2.0.5",
+    "web-audio-beat-detector": "^8.2.27"
+  }
+}

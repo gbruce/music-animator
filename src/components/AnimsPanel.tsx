@@ -5,17 +5,24 @@ import {
   Grid,
   Typography,
   Paper,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 import { useAnims } from '../contexts/AnimsContext';
 import { createLogger } from '../utils/logger';
 import { timelineStyles as styles } from './styles/TimelineStyles';
+import { guess as guessBPM } from 'web-audio-beat-detector';
+import { TimerOutlined as BPMIcon } from '@mui/icons-material';
 
 // Create a logger instance for this component
 const logger = createLogger('AnimsPanel.tsx');
 
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isDetectingBPM, setIsDetectingBPM] = useState<boolean>(false);
+  const [detectedBPM, setDetectedBPM] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
   // Use context for managing state
   const { 
@@ -29,21 +36,22 @@ const AnimsPanel: React.FC = () => {
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
+    setDetectedBPM(null);
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
     
-    // Use only the first file and ensure it's a video
+    // Use only the first file and ensure it's an audio file
     const file = files[0];
-    if (!file.type.startsWith('video/mp4')) {
-      logger.error('Dropped file is not an MP4 video');
+    if (!file.type.startsWith('audio/')) {
+      logger.error('Dropped file is not an audio file (MP3/WAV)');
       return;
     }
     
-    // Create URL for the video preview
-    const videoUrl = URL.createObjectURL(file);
-    setSourceAnim(videoUrl);
-    logger.log(`Source animation set: ${file.name}`);
+    // Create URL for the audio preview
+    const audioUrl = URL.createObjectURL(file);
+    setSourceAnim(audioUrl);
+    logger.log(`Source audio set: ${file.name}`);
   }, [setSourceAnim]);
   
   // Handle drag over
@@ -71,8 +79,8 @@ const AnimsPanel: React.FC = () => {
     if (!files || files.length === 0) return;
     
     const file = files[0];
-    if (!file.type.startsWith('video/mp4')) {
-      logger.error('Selected file is not an MP4 video');
+    if (!file.type.startsWith('audio/')) {
+      logger.error('Selected file is not an audio file (MP3/WAV)');
       return;
     }
     
@@ -81,14 +89,53 @@ const AnimsPanel: React.FC = () => {
       URL.revokeObjectURL(sourceAnim);
     }
 
-    // Create URL for the video preview
-    const videoUrl = URL.createObjectURL(file);
-    setSourceAnim(videoUrl);
-    logger.log(`Source animation set: ${file.name}`);
+    // Reset BPM when new file is selected
+    setDetectedBPM(null);
+
+    // Create URL for the audio preview
+    const audioUrl = URL.createObjectURL(file);
+    setSourceAnim(audioUrl);
+    logger.log(`Source audio set: ${file.name}`);
     
     // Reset the input to allow selecting the same file again
     e.target.value = '';
   }, [sourceAnim, setSourceAnim]);
+
+  const detectBPM = useCallback(async () => {
+    if (!sourceAnim) return;
+
+    try {
+      setIsDetectingBPM(true);
+      logger.log('Starting BPM detection...');
+
+      // Create AudioContext if it doesn't exist
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext();
+      }
+
+      // Fetch the audio file
+      const response = await fetch(sourceAnim);
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Decode the audio data
+      const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+      
+      // Detect BPM
+      const result = await guessBPM(audioBuffer);
+      
+      if (typeof result.bpm === 'number' && result.bpm > 0) {
+        setDetectedBPM(result.bpm);
+        logger.log(`Detected BPM: ${result.bpm}`);
+      } else {
+        throw new Error('Could not detect BPM');
+      }
+    } catch (error) {
+      logger.error('BPM detection failed:', error);
+      setDetectedBPM(null);
+    } finally {
+      setIsDetectingBPM(false);
+    }
+  }, [sourceAnim]);
 
   return (
     <div>
@@ -109,7 +156,7 @@ const AnimsPanel: React.FC = () => {
               ref={fileInputRef}
               onChange={handleFileChange}
               style={{ display: 'none' }}
-              accept="video/mp4"
+              accept="audio/mp3,audio/wav"
             />
             <div className={styles.dropZoneContent}>
               <svg
@@ -124,18 +171,34 @@ const AnimsPanel: React.FC = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
-                <line x1="7" y1="2" x2="7" y2="22"/>
-                <line x1="17" y1="2" x2="17" y2="22"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <line x1="2" y1="7" x2="7" y2="7"/>
-                <line x1="2" y1="17" x2="7" y2="17"/>
-                <line x1="17" y1="17" x2="22" y2="17"/>
-                <line x1="17" y1="7" x2="22" y2="7"/>
+                <path d="M9 18V5l12-2v13"/>
+                <circle cx="6" cy="18" r="3"/>
+                <circle cx="18" cy="16" r="3"/>
               </svg>
-              <p>Drop MP4 or click to select</p>
+              <p>Drop audio file (MP3/WAV) or click to select</p>
             </div>
           </div>
+
+          {/* BPM Detection Button */}
+          {sourceAnim && (
+            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={detectBPM}
+                disabled={isDetectingBPM}
+                startIcon={isDetectingBPM ? <CircularProgress size={20} /> : <BPMIcon />}
+                fullWidth
+              >
+                {isDetectingBPM ? 'Detecting BPM...' : 'Detect BPM'}
+              </Button>
+              {detectedBPM && (
+                <Typography variant="h6" color="primary">
+                  BPM: {detectedBPM.toFixed(1)}
+                </Typography>
+              )}
+            </Box>
+          )}
 
           {/* Generated animations grid */}
           <Paper 
@@ -144,7 +207,8 @@ const AnimsPanel: React.FC = () => {
               p: 2, 
               height: '100%', 
               minHeight: '70vh',
-              overflow: 'auto'
+              overflow: 'auto',
+              mt: 2
             }}
           >
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -183,14 +247,12 @@ const AnimsPanel: React.FC = () => {
               borderRadius: 1,
               overflow: 'hidden'
             }}>
-              <video
+              <audio
                 src={sourceAnim}
                 controls
                 style={{
                   width: '100%',
-                  height: 'auto',
                   display: 'block',
-                  borderRadius: 4,
                 }}
               />
             </Box>
