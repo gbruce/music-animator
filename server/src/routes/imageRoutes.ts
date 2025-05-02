@@ -30,6 +30,9 @@ router.post('/upload', upload.single('image'), imageController.uploadImage);
 // Get all images for the current user
 router.get('/', imageController.getUserImages);
 
+// Get random images
+router.get('/random', imageController.getRandomImages);
+
 // Get image by identifier
 router.get('/:identifier', imageController.getImageByIdentifier);
 

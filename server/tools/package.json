@@ -10,6 +10,7 @@
   "scripts": {
     "login": "node login.js",
     "test-video": "node test-video-api.js",
-    "test-youtube": "node test-youtube-download.js"
+    "test-youtube": "node test-youtube-download.js",
+    "test-random-images": "node test-random-images.js"
   }
 } 

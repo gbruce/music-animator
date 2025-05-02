@@ -281,5 +281,39 @@ export const imageController = {
       console.error('Error moving images to folder:', error);
       res.status(500).json({ error: 'Failed to move images' });
     }
+  },
+
+  // Get random images
+  async getRandomImages(req: Request, res: Response): Promise<void> {
+    try {
+      const count = parseInt(req.query.count as string) || 4; // Default to 4 if not specified
+      const userId = req.user?.id;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Get all images for the user with all fields
+      const allImages = await prisma.image.findMany({
+        where: {
+          userId
+        }
+      });
+
+      if (allImages.length === 0) {
+        res.status(404).json({ error: 'No images found' });
+        return;
+      }
+
+      // Randomly select the requested number of images
+      const shuffled = [...allImages].sort(() => 0.5 - Math.random());
+      const selectedImages = shuffled.slice(0, Math.min(count, allImages.length));
+
+      res.json(selectedImages);
+    } catch (error) {
+      console.error('Error getting random images:', error);
+      res.status(500).json({ error: 'Failed to get random images' });
+    }
   }
 }; 
