@@ -34,9 +34,10 @@ export interface OneShotAnimation {
     segments: AnimationSegment[];
 }
 
-export interface ComfyUIClient {
-    generateImages(prompt: string, count: number): Promise<ImageMetadata[]>;
-}
+// Import the type for the imageApi service
+import { imageApi } from '../services/api';
+// Define the type for the image service
+type ImageApiService = typeof imageApi;
 
 /**
  * Calculates the total number of beats in the animation based on BPM and duration
@@ -58,16 +59,21 @@ export function generateBeatSequence(config: AnimationConfig, totalBeats: number
 }
 
 /**
- * Creates a pool of unique images for the entire animation
+ * Creates a pool of unique images for the entire animation using the random images API
  */
 export async function generateImagePool(
-    client: ComfyUIClient,
-    prompt: string,
+    imageService: ImageApiService,
     totalSegments: number,
     imagesPerSegment: number
 ): Promise<ImageMetadata[]> {
     const totalImagesNeeded = totalSegments * imagesPerSegment;
-    return client.generateImages(prompt, totalImagesNeeded);
+    const images = await imageService.getRandomImages(totalImagesNeeded);
+    
+    // Convert the Image objects to ImageMetadata format
+    return images.map(image => ({
+        id: image.identifier,
+        url: imageService.getImageUrl(image.identifier)
+    }));
 }
 
 /**
@@ -97,12 +103,11 @@ export function createAnimationSegments(
  */
 export async function createOneShotAnimation(
     config: AnimationConfig,
-    client: ComfyUIClient,
-    prompt: string
+    imageService: ImageApiService
 ): Promise<OneShotAnimation> {
     const totalBeats = calculateTotalBeats(config);
     const beatMarkers = generateBeatSequence(config, totalBeats);
-    const imagePool = await generateImagePool(client, prompt, beatMarkers.length, 4);
+    const imagePool = await generateImagePool(imageService, beatMarkers.length, 4);
     const segments = createAnimationSegments(beatMarkers, imagePool, 4);
 
     return {
