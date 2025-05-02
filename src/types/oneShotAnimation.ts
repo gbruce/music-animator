@@ -1,3 +1,5 @@
+import { Image } from '../services/api';
+
 /**
  * A one shot animation is an ordered sequence of animation segments.
  * A one shot animation is 60 seconds long.
@@ -18,15 +20,11 @@ export interface AnimationConfig {
     beatInterval: 4 | 8;
 }
 
-export interface ImageMetadata {
-    id: string;
-    url: string;
-}
 
 export interface AnimationSegment {
-    startBeat: number;
-    images: ImageMetadata[];
-    durationInBeats: number;
+    startFrame: number;  // Frame number where segment starts (at 24 FPS)
+    images: Image[];
+    durationInFrames: number;  // Duration in frames (at 24 FPS)
 }
 
 export interface OneShotAnimation {
@@ -39,6 +37,17 @@ import { imageApi } from '../services/api';
 // Define the type for the image service
 type ImageApiService = typeof imageApi;
 
+// Constants
+const FPS = 24;
+
+/**
+ * Converts beats to frames at 24 FPS
+ */
+function beatsToFrames(beats: number, bpm: number): number {
+    const secondsPerBeat = 60 / bpm;
+    return Math.round(secondsPerBeat * beats * FPS);
+}
+
 /**
  * Calculates the total number of beats in the animation based on BPM and duration
  */
@@ -48,14 +57,15 @@ export function calculateTotalBeats(config: AnimationConfig): number {
 }
 
 /**
- * Generates beat markers at specified intervals
+ * Generates beat markers at specified intervals and converts them to frame numbers
  */
-export function generateBeatSequence(config: AnimationConfig, totalBeats: number): number[] {
-    const beatMarkers: number[] = [];
+export function generateFrameSequence(config: AnimationConfig, totalBeats: number): number[] {
+    const frameMarkers: number[] = [];
     for (let beat = 0; beat < totalBeats; beat += config.beatInterval) {
-        beatMarkers.push(beat);
+        const frameNumber = beatsToFrames(beat, config.bpm);
+        frameMarkers.push(frameNumber);
     }
-    return beatMarkers;
+    return frameMarkers;
 }
 
 /**
@@ -65,35 +75,36 @@ export async function generateImagePool(
     imageService: ImageApiService,
     totalSegments: number,
     imagesPerSegment: number
-): Promise<ImageMetadata[]> {
+): Promise<Image[]> {
     const totalImagesNeeded = totalSegments * imagesPerSegment;
     const images = await imageService.getRandomImages(totalImagesNeeded);
     
     // Convert the Image objects to ImageMetadata format
-    return images.map(image => ({
-        id: image.identifier,
-        url: imageService.getImageUrl(image.identifier)
-    }));
+    return images;
 }
 
 /**
- * Creates individual animation segments with assigned images
+ * Creates individual animation segments with assigned images, using frame numbers
  */
 export function createAnimationSegments(
-    beatMarkers: number[],
-    imagePool: ImageMetadata[],
-    imagesPerSegment: number
+    frameMarkers: number[],
+    imagePool: Image[],
+    imagesPerSegment: number,
+    bpm: number
 ): AnimationSegment[] {
-    return beatMarkers.map((startBeat, index) => {
+    return frameMarkers.map((startFrame, index) => {
         const startIdx = index * imagesPerSegment;
         const segmentImages = imagePool.slice(startIdx, startIdx + imagesPerSegment);
         
+        // Calculate duration in frames
+        const durationInFrames = index < frameMarkers.length - 1 
+            ? frameMarkers[index + 1] - startFrame 
+            : beatsToFrames(4, bpm); // Default duration for last segment (4 beats)
+        
         return {
-            startBeat,
+            startFrame,
             images: segmentImages,
-            durationInBeats: index < beatMarkers.length - 1 
-                ? beatMarkers[index + 1] - startBeat 
-                : 4 // Default duration for last segment
+            durationInFrames
         };
     });
 }
@@ -106,9 +117,9 @@ export async function createOneShotAnimation(
     imageService: ImageApiService
 ): Promise<OneShotAnimation> {
     const totalBeats = calculateTotalBeats(config);
-    const beatMarkers = generateBeatSequence(config, totalBeats);
-    const imagePool = await generateImagePool(imageService, beatMarkers.length, 4);
-    const segments = createAnimationSegments(beatMarkers, imagePool, 4);
+    const frameMarkers = generateFrameSequence(config, totalBeats);
+    const imagePool = await generateImagePool(imageService, frameMarkers.length, 4);
+    const segments = createAnimationSegments(frameMarkers, imagePool, 4, config.bpm);
 
     return {
         config,
