@@ -318,6 +318,21 @@ export const imageApi = {
     }
   },
   
+  // Get random images
+  getRandomImages: async (count?: number): Promise<Image[]> => {
+    try {
+      console.log('Getting random images, count:', count);
+      const url = count ? `/images/random?count=${count}` : '/images/random';
+      
+      const response = await api.get<Image[]>(url);
+      console.log('Random images response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Get random images error:', error);
+      throw error;
+    }
+  },
+  
   // Get images in a specific folder
   getFolderImages: async (folderId?: string): Promise<Image[]> => {
     try {
