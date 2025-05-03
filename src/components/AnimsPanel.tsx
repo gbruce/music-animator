@@ -21,11 +21,11 @@ import { runAnimationWorkflow } from '../comfy/utils';
 const logger = createLogger('AnimsPanel.tsx');
 
 // Create a function to handle the animation creation
-async function createAnimation(bpm: number): Promise<OneShotAnimation> {
+async function createAnimation(bpm: number, totalDurationSeconds: number): Promise<OneShotAnimation> {
   const config: AnimationConfig = {
     bpm,
     orientation: 'portrait', // TODO: Make this configurable
-    totalDurationSeconds: 20, // TODO: Make this configurable
+    totalDurationSeconds,
     beatInterval: 8 // TODO: Make this configurable
   };
 
@@ -41,13 +41,13 @@ async function createAnimation(bpm: number): Promise<OneShotAnimation> {
 
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isDetectingBPM, setIsDetectingBPM] = useState<boolean>(false);
-  const [detectedBPM, setDetectedBPM] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationProgress, setGenerationProgress] = useState<{ max: number; value: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [detectedBPM, setDetectedBPM] = useState<number | null>(null);
+  const [animationDuration, setAnimationDuration] = useState<number>(10);
   
   // Use context for managing state
   const { 
@@ -61,7 +61,6 @@ const AnimsPanel: React.FC = () => {
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    setDetectedBPM(null);
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
@@ -128,11 +127,10 @@ const AnimsPanel: React.FC = () => {
     e.target.value = '';
   }, [sourceAnim, setSourceAnim]);
 
-  const detectBPM = useCallback(async () => {
-    if (!sourceAnim) return;
-
+  const handleGenerateAnimation = useCallback(async () => {
+    if (!sourceAnim || !audioFile) return;
     try {
-      setIsDetectingBPM(true);
+      setIsGenerating(true);
       logger.log('Starting BPM detection...');
 
       // Create AudioContext if it doesn't exist
@@ -143,45 +141,36 @@ const AnimsPanel: React.FC = () => {
       // Fetch the audio file
       const response = await fetch(sourceAnim);
       const arrayBuffer = await response.arrayBuffer();
-      
+
       // Decode the audio data
       const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-      
+
       // Detect BPM
       const result = await guessBPM(audioBuffer);
-      
+
+      let bpm: number | null = null;
       if (typeof result.bpm === 'number' && result.bpm > 0) {
-        setDetectedBPM(result.bpm);
-        logger.log(`Detected BPM: ${result.bpm}`);
+        bpm = result.bpm;
+        setDetectedBPM(bpm);
+        logger.log(`Detected BPM: ${bpm}`);
       } else {
-        throw new Error('Could not detect BPM');
+        logger.error('Could not detect BPM');
+        setDetectedBPM(null);
+        setIsGenerating(false);
+        return;
       }
-    } catch (error) {
-      logger.error('BPM detection failed:', error);
-      setDetectedBPM(null);
-    } finally {
-      setIsDetectingBPM(false);
-    }
-  }, [sourceAnim]);
 
-  // Handle animation generation
-  const handleGenerateAnimation = useCallback(async () => {
-    if (!sourceAnim || !detectedBPM || !audioFile) return;
-    
-    try {
-      setIsGenerating(true);
       logger.log('Starting animation generation...');
-
       // Create the one shot animation
-      const animation = await createAnimation(detectedBPM);
+      const animation = await createAnimation(bpm, animationDuration);
       logger.log(`Animation sequence created:  ${JSON.stringify(animation)}`);
 
       // Process each segment with ComfyUI
       for (const segment of animation.segments) {
         logger.log(`Processing segment starting at frame ${segment.startFrame}`);
-        
+        let response;
         try {
-          await runAnimationWorkflow(
+          response =await runAnimationWorkflow(
             segment.startFrame,
             segment.images,
             segment.durationInFrames,
@@ -191,6 +180,7 @@ const AnimsPanel: React.FC = () => {
             }
           );
 
+          console.log(response);
           // Add the generated animation to the list
           // TODO: Get the actual URL from the ComfyUI response
           setGeneratedAnims(prev => [...prev, {
@@ -198,7 +188,6 @@ const AnimsPanel: React.FC = () => {
             added: false,
             selected: false
           }]);
-
         } catch (error) {
           logger.error('Error processing segment:', error);
           // Continue with other segments even if one fails
@@ -212,7 +201,7 @@ const AnimsPanel: React.FC = () => {
       setIsGenerating(false);
       setGenerationProgress(null);
     }
-  }, [sourceAnim, detectedBPM, audioFile, setGeneratedAnims]);
+  }, [sourceAnim, audioFile, setGeneratedAnims, animationDuration]);
 
   return (
     <div>
@@ -256,35 +245,40 @@ const AnimsPanel: React.FC = () => {
             </div>
           </div>
 
-          {/* BPM Detection Button */}
-          {sourceAnim && (
+          {/* Show detected BPM if available */}
+          {detectedBPM && (
             <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={detectBPM}
-                disabled={isDetectingBPM}
-                startIcon={isDetectingBPM ? <CircularProgress size={20} /> : <BPMIcon />}
-                fullWidth
-              >
-                {isDetectingBPM ? 'Detecting BPM...' : 'Detect BPM'}
-              </Button>
-              {detectedBPM && (
-                <Typography variant="h6" color="primary">
-                  BPM: {detectedBPM.toFixed(1)}
-                </Typography>
-              )}
+              <Typography variant="h6" color="primary">
+                BPM: {detectedBPM.toFixed(1)}
+              </Typography>
             </Box>
           )}
 
+          {/* Animation Duration Input */}
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="animation-duration-input">
+              <Typography variant="body2" color="text.secondary">
+                Animation Duration (seconds):
+              </Typography>
+            </label>
+            <input
+              id="animation-duration-input"
+              type="number"
+              min={1}
+              value={animationDuration}
+              onChange={e => setAnimationDuration(Number(e.target.value))}
+              style={{ width: 80, marginTop: 4, color: '#000' }}
+            />
+          </Box>
+
           {/* Generate Animation Button */}
-          {sourceAnim && detectedBPM && (
+          {audioFile && (
             <Box sx={{ mt: 2 }}>
               <Button
                 variant="contained"
                 color="secondary"
                 onClick={handleGenerateAnimation}
-                disabled={isGenerating}
+                disabled={isGenerating || !audioFile}
                 startIcon={isGenerating ? <CircularProgress size={20} /> : null}
                 fullWidth
               >

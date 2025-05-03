@@ -102,7 +102,7 @@ export async function runAnimationWorkflow(
     workflow["516"].inputs.Number = startFrame.toString();
     workflow["518"].inputs.Number = durationInFrames.toString();
 
-    let response;
+    let response: any
     // Enqueue the workflow
     response = await comfyClient.enqueue(
         workflow,
@@ -116,5 +116,46 @@ export async function runAnimationWorkflow(
         }
     );
 
+    const prompt_id = response.prompt_id;
+    await new Promise<void>(resolve => {
+        setTimeout(() => {
+            resolve();
+        }, 1000);
+    });
+
+
+    if (response.images.length === 0 && prompt_id) {
+        const unsub = comfyClient.on('progress',  ({ max, value}) => {
+            if (onProgress) {
+                onProgress(max, value);
+            }
+        });
+        await comfyClient.waitForPrompt(prompt_id);
+        response = await comfyClient.getPromptOutputs(prompt_id);
+
+        unsub();
+    }
+
+    if (!response) {
+        return;
+    }
+
+    const subfolder =response["410"].gifs[0].subfolder;
+    const filename = response["410"].gifs[0].filename;
+    const workflowImage = response["410"].gifs[0].workflow;
+
+    async function getComfyFileAsBlob(filename: string, subfolder: string) {
+        const videoResponse = await comfyClient.fetchApi(`/api/view?filename=${filename}&subfolder=${subfolder}`);
+        const blob = await videoResponse.blob();
+        return URL.createObjectURL(blob);
+    }
+
+    const videoUrl = await getComfyFileAsBlob(filename, subfolder);
+    const workflowUrl = await getComfyFileAsBlob(workflowImage, subfolder);
+
     logger.log(`Running animation workflow completed`);
+    return {
+        videoUrl,
+        workflowUrl,
+    };
 }
