@@ -13,14 +13,38 @@ import { createLogger } from '../utils/logger';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { guess as guessBPM } from 'web-audio-beat-detector';
 import { TimerOutlined as BPMIcon } from '@mui/icons-material';
+import { imageApi } from '../services/api';
+import { createOneShotAnimation, AnimationConfig, OneShotAnimation, CreateOneShotAnimationParams } from '../types/oneShotAnimation';
+import { runAnimationWorkflow } from '../comfy/utils';
 
 // Create a logger instance for this component
 const logger = createLogger('AnimsPanel.tsx');
+
+// Create a function to handle the animation creation
+async function createAnimation(bpm: number): Promise<OneShotAnimation> {
+  const config: AnimationConfig = {
+    bpm,
+    orientation: 'portrait', // TODO: Make this configurable
+    totalDurationSeconds: 20, // TODO: Make this configurable
+    beatInterval: 8 // TODO: Make this configurable
+  };
+
+  const params: CreateOneShotAnimationParams = {
+    config,
+    imageService: {
+      getRandomImages: imageApi.getRandomImages.bind(imageApi)
+    }
+  };
+
+  return createOneShotAnimation(params);
+}
 
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isDetectingBPM, setIsDetectingBPM] = useState<boolean>(false);
   const [detectedBPM, setDetectedBPM] = useState<number | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generationProgress, setGenerationProgress] = useState<{ max: number; value: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   
@@ -137,6 +161,55 @@ const AnimsPanel: React.FC = () => {
     }
   }, [sourceAnim]);
 
+  // Handle animation generation
+  const handleGenerateAnimation = useCallback(async () => {
+    if (!sourceAnim || !detectedBPM) return;
+    
+    try {
+      setIsGenerating(true);
+      logger.log('Starting animation generation...');
+
+      // Create the one shot animation
+      const animation = await createAnimation(detectedBPM);
+      logger.log(`Animation sequence created:  ${JSON.stringify(animation)}`);
+
+      // Process each segment with ComfyUI
+      for (const segment of animation.segments) {
+        logger.log(`Processing segment starting at frame ${segment.startFrame}`);
+        
+        try {
+          await runAnimationWorkflow(
+            segment.startFrame,
+            segment.images,
+            segment.durationInFrames,
+            (max, value) => {
+              setGenerationProgress({ max, value });
+            }
+          );
+
+          // Add the generated animation to the list
+          // TODO: Get the actual URL from the ComfyUI response
+          setGeneratedAnims(prev => [...prev, {
+            url: 'placeholder-url',
+            added: false,
+            selected: false
+          }]);
+
+        } catch (error) {
+          logger.error('Error processing segment:', error);
+          // Continue with other segments even if one fails
+        }
+      }
+
+      logger.log('Animation generation completed');
+    } catch (error) {
+      logger.error('Animation generation failed:', error);
+    } finally {
+      setIsGenerating(false);
+      setGenerationProgress(null);
+    }
+  }, [sourceAnim, detectedBPM, setGeneratedAnims]);
+
   return (
     <div>
       {/* Main content area */}
@@ -196,6 +269,29 @@ const AnimsPanel: React.FC = () => {
                 <Typography variant="h6" color="primary">
                   BPM: {detectedBPM.toFixed(1)}
                 </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* Generate Animation Button */}
+          {sourceAnim && detectedBPM && (
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleGenerateAnimation}
+                disabled={isGenerating}
+                startIcon={isGenerating ? <CircularProgress size={20} /> : null}
+                fullWidth
+              >
+                {isGenerating ? 'Generating Animation...' : 'Generate Animation'}
+              </Button>
+              {isGenerating && generationProgress && (
+                <Box sx={{ width: '100%', mt: 1 }}>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Processing frame {generationProgress.value} of {generationProgress.max}
+                  </Typography>
+                </Box>
               )}
             </Box>
           )}

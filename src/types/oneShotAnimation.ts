@@ -35,7 +35,9 @@ export interface OneShotAnimation {
 // Import the type for the imageApi service
 import { imageApi } from '../services/api';
 // Define the type for the image service
-type ImageApiService = typeof imageApi;
+type ImageApiService = {
+  getRandomImages: (count?: number) => Promise<Image[]>;
+};
 
 // Constants
 const FPS = 24;
@@ -112,17 +114,22 @@ export function createAnimationSegments(
 /**
  * Creates a complete one shot animation sequence
  */
-export async function createOneShotAnimation(
-    config: AnimationConfig,
-    imageService: ImageApiService
-): Promise<OneShotAnimation> {
-    const totalBeats = calculateTotalBeats(config);
-    const frameMarkers = generateFrameSequence(config, totalBeats);
-    const imagePool = await generateImagePool(imageService, frameMarkers.length, 4);
-    const segments = createAnimationSegments(frameMarkers, imagePool, 4, config.bpm);
+export interface CreateOneShotAnimationParams {
+  config: AnimationConfig;
+  imageService: ImageApiService;
+}
 
-    return {
-        config,
-        segments
-    };
+export async function createOneShotAnimation(
+  params: CreateOneShotAnimationParams
+): Promise<OneShotAnimation> {
+  const { config, imageService } = params;
+  const totalBeats = calculateTotalBeats(config);
+  const frameMarkers = generateFrameSequence(config, totalBeats);
+  const imagePool = await generateImagePool(imageService, frameMarkers.length, 4);
+  const segments = createAnimationSegments(frameMarkers, imagePool, 4, config.bpm);
+
+  return {
+    config,
+    segments
+  };
 }

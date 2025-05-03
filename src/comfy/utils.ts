@@ -3,7 +3,6 @@ import vid2vid from './audio-reactive-vid2vid.json';
 import { Client } from '@stable-canvas/comfyui-client';
 import { imageApi } from '../services/api';
 import { createLogger } from '../utils/logger';
-import jemsphat from 'jmespath';
 
 // Create a logger instance for this component
 const logger = createLogger('comfy/utils.ts');
@@ -32,7 +31,7 @@ export async function runAnimationWorkflow(
 ) {
     // Create and initialize ComfyUI client
     const comfyClient = new Client({
-        api_host: 'http://localhost:8188'
+        api_host: 'localhost:8188'
     });
  
     comfyClient.connect({
@@ -64,16 +63,24 @@ export async function runAnimationWorkflow(
                 
         logger.log(`Image uploaded successfully to ComfyUI: ${uploadedImageName}`);
         
-        const node = jemsphat.search(workflow, `{}{?class_type=="LoadImage", ?_meta.title=="Image${i+1}"}`);
 
-        node.inputs.image = uploadedImageName;
+        if (i == 0) {
+            workflow["56"].inputs.image = uploadedImageName;
+        }
+        else if (i == 1) {
+            workflow["58"].inputs.image = uploadedImageName;
+        }
+        else if (i == 2) {
+            workflow["267"].inputs.image = uploadedImageName;
+        }
+        else if (i == 3) {
+            workflow["372"].inputs.image = uploadedImageName;
+        }
     }
 
-    let node = jemsphat.search(workflow, `{}{?class_type=="Int", ?_meta.title=="Start Time"}`);
-    node.inputs.Number = startFrame.toString();
+    workflow["516"].inputs.Number = startFrame.toString();
+    workflow["518"].inputs.Number = durationInFrames.toString();
 
-    node = jemsphat.search(workflow, `{}{?class_type=="Int", ?_meta.title=="Batch Size"}`);
-    node.inputs.Number = durationInFrames.toString();
 
     let response;
     // Enqueue the workflow

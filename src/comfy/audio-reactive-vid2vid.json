@@ -1,7 +1,10 @@
 {
   "3": {
     "inputs": {
-      "seed": 889,
+      "seed": [
+        "406",
+        0
+      ],
       "steps": 8,
       "cfg": 2,
       "sampler_name": "lcm",
@@ -9,6 +12,18 @@
       "denoise": 1,
       "model": [
         "285",
+        0
+      ],
+      "positive": [
+        "459",
+        0
+      ],
+      "negative": [
+        "459",
+        1
+      ],
+      "latent_image": [
+        "496",
         0
       ]
     },
@@ -28,7 +43,11 @@
   },
   "7": {
     "inputs": {
-      "text": "poorly drawn, bad anatomy, ugly, low quality, low-res, worst quality, blurry, cropped, out of frame, JPEG artifacts, error, (username:1.1), (signature:1.1), (watermark:1.2), (text:1.2)"
+      "text": "poorly drawn, bad anatomy, ugly, low quality, low-res, worst quality, blurry, cropped, out of frame, JPEG artifacts, error, (username:1.1), (signature:1.1), (watermark:1.2), (text:1.2)",
+      "clip": [
+        "271",
+        0
+      ]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -39,6 +58,10 @@
     "inputs": {
       "samples": [
         "3",
+        0
+      ],
+      "vae": [
+        "272",
         0
       ]
     },
@@ -137,7 +160,20 @@
     }
   },
   "263": {
-    "inputs": {},
+    "inputs": {
+      "image": [
+        "366",
+        0
+      ],
+      "vae": [
+        "272",
+        0
+      ],
+      "latent_size": [
+        "496",
+        0
+      ]
+    },
     "class_type": "ACN_SparseCtrlRGBPreprocessor",
     "_meta": {
       "title": "RGB SparseCtrl"
@@ -192,7 +228,10 @@
   },
   "266": {
     "inputs": {
-      "indexes": "0,32,64,95"
+      "indexes": [
+        "483",
+        2
+      ]
     },
     "class_type": "ACN_SparseCtrlIndexMethodNode",
     "_meta": {
@@ -451,7 +490,11 @@
   },
   "377": {
     "inputs": {
-      "text": "4k, beautiful, high quality, highly detailled, art"
+      "text": "4k, beautiful, high quality, highly detailled, art",
+      "clip": [
+        "271",
+        0
+      ]
     },
     "class_type": "CLIPTextEncode",
     "_meta": {
@@ -543,9 +586,12 @@
   },
   "410": {
     "inputs": {
-      "frame_rate": 8,
+      "frame_rate": [
+        "504",
+        0
+      ],
       "loop_count": 0,
-      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/04-30",
+      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/05-03",
       "format": "video/h264-mp4",
       "pix_fmt": "yuv420p",
       "crf": 19,
@@ -556,6 +602,14 @@
       "images": [
         "8",
         0
+      ],
+      "audio": [
+        "514",
+        1
+      ],
+      "vae": [
+        "272",
+        0
       ]
     },
     "class_type": "VHS_VideoCombine",
@@ -565,7 +619,10 @@
   },
   "417": {
     "inputs": {
-      "seed": 889,
+      "seed": [
+        "406",
+        0
+      ],
       "steps": 8,
       "cfg": 2,
       "sampler_name": "lcm",
@@ -574,6 +631,14 @@
       "model": [
         "285",
         0
+      ],
+      "positive": [
+        "459",
+        0
+      ],
+      "negative": [
+        "459",
+        1
       ],
       "latent_image": [
         "418",
@@ -590,6 +655,10 @@
       "pixels": [
         "407",
         0
+      ],
+      "vae": [
+        "272",
+        0
       ]
     },
     "class_type": "VAEEncode",
@@ -601,6 +670,10 @@
     "inputs": {
       "samples": [
         "417",
+        0
+      ],
+      "vae": [
+        "272",
         0
       ]
     },
@@ -632,18 +705,6 @@
     "class_type": "ImageUpscaleWithModel",
     "_meta": {
       "title": "Upscale Image (using Model)"
-    }
-  },
-  "428": {
-    "inputs": {
-      "CONDITIONING": [
-        "459",
-        1
-      ]
-    },
-    "class_type": "Prompts Everywhere",
-    "_meta": {
-      "title": "Prompts Everywhere"
     }
   },
   "430": {
@@ -743,21 +804,6 @@
       "title": "width"
     }
   },
-  "471": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": "indexes",
-      "group_regex": ".*",
-      "STRING": [
-        "483",
-        2
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "indexes"
-    }
-  },
   "480": {
     "inputs": {
       "title_regex": "RGB SparseCtrl",
@@ -776,7 +822,7 @@
   "483": {
     "inputs": {
       "peaks_threshold": 0.4,
-      "min_peaks_distance": 5,
+      "min_peaks_distance": 100,
       "audio_weights": [
         "514",
         2
@@ -829,7 +875,11 @@
   "495": {
     "inputs": {
       "preprocessor": "AnyLineArtPreprocessor_aux",
-      "resolution": 512
+      "resolution": 512,
+      "image": [
+        "525",
+        0
+      ]
     },
     "class_type": "AIO_Preprocessor",
     "_meta": {
@@ -840,6 +890,10 @@
     "inputs": {
       "pixels": [
         "525",
+        0
+      ],
+      "vae": [
+        "272",
         0
       ]
     },
@@ -887,7 +941,11 @@
   "499": {
     "inputs": {
       "preprocessor": "DepthAnythingV2Preprocessor",
-      "resolution": 512
+      "resolution": 512,
+      "image": [
+        "525",
+        0
+      ]
     },
     "class_type": "AIO_Preprocessor",
     "_meta": {
@@ -951,36 +1009,6 @@
       "title": "Video Info"
     }
   },
-  "507": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "LATENT": [
-        "496",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "Latent"
-    }
-  },
-  "508": {
-    "inputs": {
-      "title_regex": "AIO",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "IMAGE": [
-        "525",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "CN_Input"
-    }
-  },
   "510": {
     "inputs": {
       "width": 512,
@@ -1010,6 +1038,10 @@
       ],
       "batch_size": [
         "518",
+        0
+      ],
+      "fps": [
+        "504",
         0
       ],
       "audio": [
