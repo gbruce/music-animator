@@ -32,15 +32,6 @@
       "title": "KSampler"
     }
   },
-  "4": {
-    "inputs": {
-      "ckpt_name": "dreamshaper_8.safetensors"
-    },
-    "class_type": "CheckpointLoaderSimple",
-    "_meta": {
-      "title": "Load Checkpoint"
-    }
-  },
   "7": {
     "inputs": {
       "text": "poorly drawn, bad anatomy, ugly, low quality, low-res, worst quality, blurry, cropped, out of frame, JPEG artifacts, error, (username:1.1), (signature:1.1), (watermark:1.2), (text:1.2)",
@@ -251,7 +242,7 @@
     "inputs": {
       "stop_at_clip_layer": -2,
       "clip": [
-        "4",
+        "562",
         1
       ]
     },
@@ -274,7 +265,7 @@
       "lora_name": "SD1.5\\animatediff\\v3_sd15_adapter.ckpt",
       "strength_model": 1,
       "model": [
-        "4",
+        "562",
         0
       ]
     },
@@ -345,7 +336,7 @@
   },
   "294": {
     "inputs": {
-      "audio": "idea-37-[AudioTrimmer.com] (Cover).wav",
+      "audio": "New Era.wav",
       "start_time": [
         "517",
         1
@@ -780,7 +771,7 @@
         0
       ],
       "image": [
-        "495",
+        "561",
         0
       ]
     },
@@ -855,7 +846,7 @@
   },
   "494": {
     "inputs": {
-      "video": "Professional_Mode_the_camera_rotates_around_the_su (3) (1).mp4",
+      "video": "11-21_00001-audio_apo8_ghq5.mp4",
       "force_rate": 24,
       "custom_width": 288,
       "custom_height": 512,
@@ -929,7 +920,7 @@
         0
       ],
       "image": [
-        "499",
+        "558",
         0
       ]
     },
@@ -1112,6 +1103,63 @@
     "class_type": "Repeat Image To Count",
     "_meta": {
       "title": "Repeat Image To Count"
+    }
+  },
+  "558": {
+    "inputs": {
+      "key": "vid2vid-depth"
+    },
+    "class_type": "RetrieveBackendData //Inspire",
+    "_meta": {
+      "title": "Retrieve Backend Data (Inspire)"
+    }
+  },
+  "559": {
+    "inputs": {
+      "key": "vid2vid-depth",
+      "tag": "",
+      "data": [
+        "499",
+        0
+      ]
+    },
+    "class_type": "CacheBackendData //Inspire",
+    "_meta": {
+      "title": "Cache Backend Data (Inspire)"
+    }
+  },
+  "560": {
+    "inputs": {
+      "key": "vid2vid-lineart",
+      "tag": "",
+      "data": [
+        "495",
+        0
+      ]
+    },
+    "class_type": "CacheBackendData //Inspire",
+    "_meta": {
+      "title": "Cache Backend Data (Inspire)"
+    }
+  },
+  "561": {
+    "inputs": {
+      "key": "vid2vid-lineart"
+    },
+    "class_type": "RetrieveBackendData //Inspire",
+    "_meta": {
+      "title": "Retrieve Backend Data (Inspire)"
+    }
+  },
+  "562": {
+    "inputs": {
+      "ckpt_name": "SD1.5\\DreamShaper.safetensors",
+      "key_opt": "",
+      "mode": "Auto"
+    },
+    "class_type": "CheckpointLoaderSimpleShared //Inspire",
+    "_meta": {
+      "title": "Shared Checkpoint Loader (Inspire)"
     }
   }
 }

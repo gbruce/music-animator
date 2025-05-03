@@ -27,8 +27,11 @@ export async function runAnimationWorkflow(
     startFrame: number,
     images: Image[],
     durationInFrames: number,
+    audio: File,
     onProgress?: (max: number, value: number) => void
 ) {
+    logger.log(`Running animation workflow`);
+
     // Create and initialize ComfyUI client
     const comfyClient = new Client({
         api_host: 'localhost:8188'
@@ -78,9 +81,26 @@ export async function runAnimationWorkflow(
         }
     }
 
+    // Upload audio file to ComfyUI
+    const audioFormData = new FormData();
+    audioFormData.append('image', audio, audio.name);
+    const audioUploadResponse = await comfyClient.fetchApi('/api/upload/image', {
+        method: 'POST',
+        body: audioFormData,
+    });
+    if (!audioUploadResponse.ok) {
+        throw new Error(`Failed to upload audio: ${audioUploadResponse.statusText}`);
+    }
+    const audioUploadResult = await audioUploadResponse.json();
+    const uploadedAudioName = audioUploadResult.name;
+    logger.log(`Audio uploaded successfully to ComfyUI: ${uploadedAudioName}`);
+    // Set the audio file in the workflow (node 294)
+    if (workflow["294"] && workflow["294"].inputs) {
+        workflow["294"].inputs.audio = uploadedAudioName;
+    }
+
     workflow["516"].inputs.Number = startFrame.toString();
     workflow["518"].inputs.Number = durationInFrames.toString();
-
 
     let response;
     // Enqueue the workflow
@@ -95,4 +115,6 @@ export async function runAnimationWorkflow(
             },
         }
     );
+
+    logger.log(`Running animation workflow completed`);
 }

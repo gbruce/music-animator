@@ -99,10 +99,13 @@ export function createAnimationSegments(
         const segmentImages = imagePool.slice(startIdx, startIdx + imagesPerSegment);
         
         // Calculate duration in frames
-        const durationInFrames = index < frameMarkers.length - 1 
+        let durationInFrames = index < frameMarkers.length - 1 
             ? frameMarkers[index + 1] - startFrame 
             : beatsToFrames(4, bpm); // Default duration for last segment (4 beats)
         
+        // add an extra beat for transitions
+        durationInFrames += beatsToFrames(1, bpm);
+
         return {
             startFrame,
             images: segmentImages,

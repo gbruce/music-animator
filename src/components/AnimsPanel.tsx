@@ -47,6 +47,7 @@ const AnimsPanel: React.FC = () => {
   const [generationProgress, setGenerationProgress] = useState<{ max: number; value: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
   
   // Use context for managing state
   const { 
@@ -75,6 +76,7 @@ const AnimsPanel: React.FC = () => {
     // Create URL for the audio preview
     const audioUrl = URL.createObjectURL(file);
     setSourceAnim(audioUrl);
+    setAudioFile(file);
     logger.log(`Source audio set: ${file.name}`);
   }, [setSourceAnim]);
   
@@ -119,6 +121,7 @@ const AnimsPanel: React.FC = () => {
     // Create URL for the audio preview
     const audioUrl = URL.createObjectURL(file);
     setSourceAnim(audioUrl);
+    setAudioFile(file);
     logger.log(`Source audio set: ${file.name}`);
     
     // Reset the input to allow selecting the same file again
@@ -163,7 +166,7 @@ const AnimsPanel: React.FC = () => {
 
   // Handle animation generation
   const handleGenerateAnimation = useCallback(async () => {
-    if (!sourceAnim || !detectedBPM) return;
+    if (!sourceAnim || !detectedBPM || !audioFile) return;
     
     try {
       setIsGenerating(true);
@@ -182,6 +185,7 @@ const AnimsPanel: React.FC = () => {
             segment.startFrame,
             segment.images,
             segment.durationInFrames,
+            audioFile,
             (max, value) => {
               setGenerationProgress({ max, value });
             }
@@ -208,7 +212,7 @@ const AnimsPanel: React.FC = () => {
       setIsGenerating(false);
       setGenerationProgress(null);
     }
-  }, [sourceAnim, detectedBPM, setGeneratedAnims]);
+  }, [sourceAnim, detectedBPM, audioFile, setGeneratedAnims]);
 
   return (
     <div>
