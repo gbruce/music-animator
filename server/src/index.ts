@@ -10,6 +10,7 @@ import folderRoutes from './routes/folderRoutes';
 import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
+import segmentRoutes from './routes/segmentRoutes';
 
 dotenv.config();
 
@@ -114,6 +115,7 @@ app.use('/api/images', imageRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api', trackRoutes); // Track routes include their own prefixes
+app.use('/api/segments', segmentRoutes);
 
 // Add a ping endpoint for tests to check if server is running
 app.get('/ping', (req, res) => {

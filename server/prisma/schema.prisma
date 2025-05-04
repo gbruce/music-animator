@@ -8,64 +8,65 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  username        String    @unique
-  password        String
-  resetToken      String?
+  id               String    @id @default(uuid())
+  email            String    @unique
+  username         String    @unique
+  password         String
+  resetToken       String?
   resetTokenExpiry DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  projects        Project[]
-  images          Image[]
-  videos          Video[]
-  folders         Folder[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  projects         Project[]
+  images           Image[]
+  videos           Video[]
+  folders          Folder[]
 }
 
 model Project {
-  id              String    @id @default(uuid())
-  name            String
-  bpm             Int       @default(120)
-  fps             Int       @default(24)
-  duration        Int       @default(60)
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tracks          Track[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id        String    @id @default(uuid())
+  name      String
+  bpm       Int       @default(120)
+  fps       Int       @default(24)
+  duration  Int       @default(60)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tracks    Track[]
+  segments  Segment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([userId])
 }
 
 model Track {
-  id              String    @id @default(uuid())
-  name            String
-  startBeat       Int       @default(0)
-  durationBeats   Int       @default(16)
-  projectId       String
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  image1Id        String?
-  image1          Image?    @relation("TrackImage1", fields: [image1Id], references: [id], onDelete: SetNull)
-  image2Id        String?
-  image2          Image?    @relation("TrackImage2", fields: [image2Id], references: [id], onDelete: SetNull)
-  image3Id        String?
-  image3          Image?    @relation("TrackImage3", fields: [image3Id], references: [id], onDelete: SetNull)
-  image4Id        String?
-  image4          Image?    @relation("TrackImage4", fields: [image4Id], references: [id], onDelete: SetNull)
-  image5Id        String?
-  image5          Image?    @relation("TrackImage5", fields: [image5Id], references: [id], onDelete: SetNull)
-  image6Id        String?
-  image6          Image?    @relation("TrackImage6", fields: [image6Id], references: [id], onDelete: SetNull)
-  image7Id        String?
-  image7          Image?    @relation("TrackImage7", fields: [image7Id], references: [id], onDelete: SetNull)
-  image8Id        String?
-  image8          Image?    @relation("TrackImage8", fields: [image8Id], references: [id], onDelete: SetNull)
-  image9Id        String?
-  image9          Image?    @relation("TrackImage9", fields: [image9Id], references: [id], onDelete: SetNull)
-  image10Id       String?
-  image10         Image?    @relation("TrackImage10", fields: [image10Id], references: [id], onDelete: SetNull)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  startBeat     Int      @default(0)
+  durationBeats Int      @default(16)
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  image1Id      String?
+  image1        Image?   @relation("TrackImage1", fields: [image1Id], references: [id], onDelete: SetNull)
+  image2Id      String?
+  image2        Image?   @relation("TrackImage2", fields: [image2Id], references: [id], onDelete: SetNull)
+  image3Id      String?
+  image3        Image?   @relation("TrackImage3", fields: [image3Id], references: [id], onDelete: SetNull)
+  image4Id      String?
+  image4        Image?   @relation("TrackImage4", fields: [image4Id], references: [id], onDelete: SetNull)
+  image5Id      String?
+  image5        Image?   @relation("TrackImage5", fields: [image5Id], references: [id], onDelete: SetNull)
+  image6Id      String?
+  image6        Image?   @relation("TrackImage6", fields: [image6Id], references: [id], onDelete: SetNull)
+  image7Id      String?
+  image7        Image?   @relation("TrackImage7", fields: [image7Id], references: [id], onDelete: SetNull)
+  image8Id      String?
+  image8        Image?   @relation("TrackImage8", fields: [image8Id], references: [id], onDelete: SetNull)
+  image9Id      String?
+  image9        Image?   @relation("TrackImage9", fields: [image9Id], references: [id], onDelete: SetNull)
+  image10Id     String?
+  image10       Image?   @relation("TrackImage10", fields: [image10Id], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([projectId])
   @@index([image1Id])
@@ -81,8 +82,8 @@ model Track {
 }
 
 model Image {
-  id              String    @id @default(uuid())
-  identifier      String    @unique
+  id              String         @id @default(uuid())
+  identifier      String         @unique
   filePath        String
   height          Int
   width           Int
@@ -90,21 +91,22 @@ model Image {
   imageType       String
   filename        String
   userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   folderId        String?
-  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  uploadDate      DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  tracksAsImage1  Track[]   @relation("TrackImage1")
-  tracksAsImage2  Track[]   @relation("TrackImage2")
-  tracksAsImage3  Track[]   @relation("TrackImage3")
-  tracksAsImage4  Track[]   @relation("TrackImage4")
-  tracksAsImage5  Track[]   @relation("TrackImage5")
-  tracksAsImage6  Track[]   @relation("TrackImage6")
-  tracksAsImage7  Track[]   @relation("TrackImage7")
-  tracksAsImage8  Track[]   @relation("TrackImage8")
-  tracksAsImage9  Track[]   @relation("TrackImage9")
-  tracksAsImage10 Track[]   @relation("TrackImage10")
+  folder          Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadDate      DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  tracksAsImage1  Track[]        @relation("TrackImage1")
+  tracksAsImage2  Track[]        @relation("TrackImage2")
+  tracksAsImage3  Track[]        @relation("TrackImage3")
+  tracksAsImage4  Track[]        @relation("TrackImage4")
+  tracksAsImage5  Track[]        @relation("TrackImage5")
+  tracksAsImage6  Track[]        @relation("TrackImage6")
+  tracksAsImage7  Track[]        @relation("TrackImage7")
+  tracksAsImage8  Track[]        @relation("TrackImage8")
+  tracksAsImage9  Track[]        @relation("TrackImage9")
+  tracksAsImage10 Track[]        @relation("TrackImage10")
+  SegmentImage    SegmentImage[]
 
   @@index([userId])
   @@index([identifier])
@@ -112,40 +114,60 @@ model Image {
 }
 
 model Folder {
-  id              String    @id @default(uuid())
-  name            String
-  parentId        String?
-  parent          Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Folder[]  @relation("FolderHierarchy")
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  images          Image[]
-  videos          Video[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Folder[] @relation("FolderHierarchy")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images    Image[]
+  videos    Video[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([parentId])
 }
 
 model Video {
-  id              String    @id @default(uuid())
-  identifier      String    @unique
-  filePath        String
-  thumbnailPath   String?
-  fullImagePath   String?
-  duration        Float     // Duration in seconds
-  fileSize        Int
-  videoType       String
-  filename        String
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folderId        String?
-  folder          Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  uploadDate      DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id            String   @id @default(uuid())
+  identifier    String   @unique
+  filePath      String
+  thumbnailPath String?
+  fullImagePath String?
+  duration      Float // Duration in seconds
+  fileSize      Int
+  videoType     String
+  filename      String
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId      String?
+  folder        Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadDate    DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])
   @@index([identifier])
   @@index([folderId])
-} 
+}
+
+model Segment {
+  id             String         @id @default(uuid())
+  draftVideoId   String?
+  upscaleVideoId String?
+  startFrame     Int
+  duration       Int
+  project        Project        @relation(fields: [projectId], references: [id])
+  projectId      String
+  images         SegmentImage[]
+}
+
+model SegmentImage {
+  id        String  @id @default(uuid())
+  segment   Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  segmentId String
+  image     Image   @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId   String
+  order     Int?
+}
