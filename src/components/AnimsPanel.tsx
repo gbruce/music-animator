@@ -13,7 +13,7 @@ import { createLogger } from '../utils/logger';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { guess as guessBPM } from 'web-audio-beat-detector';
 import { TimerOutlined as BPMIcon } from '@mui/icons-material';
-import { imageApi } from '../services/api';
+import { imageApi, videoApi } from '../services/api';
 import { createOneShotAnimation, AnimationConfig, OneShotAnimation, CreateOneShotAnimationParams } from '../types/oneShotAnimation';
 import { runAnimationWorkflow } from '../comfy/utils';
 
@@ -170,7 +170,7 @@ const AnimsPanel: React.FC = () => {
         logger.log(`Processing segment starting at frame ${segment.startFrame}`);
         let response;
         try {
-          response =await runAnimationWorkflow(
+          response = await runAnimationWorkflow(
             segment.startFrame,
             segment.images,
             segment.durationInFrames,
@@ -180,7 +180,17 @@ const AnimsPanel: React.FC = () => {
             }
           );
 
-          console.log(response);
+          // Upload the returned video and image blobs to the API
+          if (response && response.videoUrl && response.workflowUrl && response.promptId) {
+            const filenameBase = `${response.promptId}-${segment.startFrame}-${segment.durationInFrames}`;
+
+            // Fetch blobs from object URLs
+            const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
+
+            // Upload video
+            await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
+          }
+
           // Add the generated animation to the list
           // TODO: Get the actual URL from the ComfyUI response
           setGeneratedAnims(prev => [...prev, {

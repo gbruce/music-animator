@@ -101,6 +101,7 @@ export async function runAnimationWorkflow(
 
     workflow["516"].inputs.Number = startFrame.toString();
     workflow["518"].inputs.Number = durationInFrames.toString();
+    workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
 
     let response: any
     // Enqueue the workflow
@@ -157,5 +158,6 @@ export async function runAnimationWorkflow(
     return {
         videoUrl,
         workflowUrl,
+        promptId: prompt_id,
     };
 }

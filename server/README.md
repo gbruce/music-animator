@@ -66,6 +66,16 @@ All protected routes require an `Authorization` header with a valid JWT token:
 Authorization: Bearer <token>
 ```
 
+### Image Routes
+
+- **GET** `/api/images/random`
+  - Get a random selection of images for the authenticated user
+  - Query Parameters:
+    - `count` (optional, number): Number of images to return (default: 4)
+    - `duplicateNth` (optional, number): If provided, every nth image in the result will be duplicated at position n+1 (1-based index)
+  - Returns: `Array<Image>`
+  - Requires: Authentication token
+
 ## Database Schema
 
 ### User Model

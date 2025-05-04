@@ -319,11 +319,14 @@ export const imageApi = {
   },
   
   // Get random images
-  getRandomImages: async (count?: number): Promise<Image[]> => {
+  getRandomImages: async (count?: number, duplicateNth?: number): Promise<Image[]> => {
     try {
-      console.log('Getting random images, count:', count);
-      const url = count ? `/images/random?count=${count}` : '/images/random';
-      
+      console.log('Getting random images, count:', count, 'duplicateNth:', duplicateNth);
+      let url = '/images/random';
+      const params: string[] = [];
+      if (count !== undefined) params.push(`count=${count}`);
+      if (duplicateNth !== undefined) params.push(`duplicateNth=${duplicateNth}`);
+      if (params.length > 0) url += `?${params.join('&')}`;
       const response = await api.get<Image[]>(url);
       console.log('Random images response:', response.data);
       return response.data;
@@ -436,6 +439,20 @@ export const videoApi = {
     if (folderId) {
       formData.append('folderId', folderId);
     }
+
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    };
+
+    const response = await api.post<Video>('/videos/upload', formData, config);
+    return response.data;
+  },
+
+  async uploadGeneratedVideo(blob: Blob, filename: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('video', blob, filename);
 
     const config = {
       headers: {

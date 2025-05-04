@@ -36,7 +36,7 @@ export interface OneShotAnimation {
 import { imageApi } from '../services/api';
 // Define the type for the image service
 type ImageApiService = {
-  getRandomImages: (count?: number) => Promise<Image[]>;
+  getRandomImages: (count?: number, duplicateNth?: number) => Promise<Image[]>;
 };
 
 // Constants
@@ -76,10 +76,11 @@ export function generateFrameSequence(config: AnimationConfig, totalBeats: numbe
 export async function generateImagePool(
     imageService: ImageApiService,
     totalSegments: number,
-    imagesPerSegment: number
+    imagesPerSegment: number,
+    duplicateNth?: number
 ): Promise<Image[]> {
     const totalImagesNeeded = totalSegments * imagesPerSegment;
-    const images = await imageService.getRandomImages(totalImagesNeeded);
+    const images = await imageService.getRandomImages(totalImagesNeeded, duplicateNth);
     
     // Convert the Image objects to ImageMetadata format
     return images;
@@ -120,6 +121,7 @@ export function createAnimationSegments(
 export interface CreateOneShotAnimationParams {
   config: AnimationConfig;
   imageService: ImageApiService;
+  imagesPerSegment?: 4 | 8;
 }
 
 export async function createOneShotAnimation(
@@ -128,8 +130,8 @@ export async function createOneShotAnimation(
   const { config, imageService } = params;
   const totalBeats = calculateTotalBeats(config);
   const frameMarkers = generateFrameSequence(config, totalBeats);
-  const imagePool = await generateImagePool(imageService, frameMarkers.length, 4);
-  const segments = createAnimationSegments(frameMarkers, imagePool, 4, config.bpm);
+  const imagePool = await generateImagePool(imageService, frameMarkers.length, config.beatInterval, 2);
+  const segments = createAnimationSegments(frameMarkers, imagePool, config.beatInterval, config.bpm);
 
   return {
     config,

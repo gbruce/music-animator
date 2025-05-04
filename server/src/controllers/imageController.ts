@@ -288,6 +288,15 @@ export const imageController = {
     try {
       const count = parseInt(req.query.count as string) || 4; // Default to 4 if not specified
       const userId = req.user?.id;
+      const duplicateNthRaw = req.query.duplicateNth as string | undefined;
+      let duplicateNth: number | undefined = undefined;
+      if (duplicateNthRaw !== undefined) {
+        duplicateNth = parseInt(duplicateNthRaw, 10);
+        if (isNaN(duplicateNth) || duplicateNth < 1) {
+          res.status(400).json({ error: 'duplicateNth must be a positive integer' });
+          return;
+        }
+      }
 
       if (!userId) {
         res.status(401).json({ error: 'User not authenticated' });
@@ -308,7 +317,14 @@ export const imageController = {
 
       // Randomly select the requested number of images
       const shuffled = [...allImages].sort(() => 0.5 - Math.random());
-      const selectedImages = shuffled.slice(0, Math.min(count, allImages.length));
+      let selectedImages = shuffled.slice(0, Math.min(count, allImages.length));
+
+      // If duplicateNth is set, duplicate every nth image at n+1 (build a new array, do not insert in-place)
+      if (duplicateNth !== undefined && duplicateNth > 0 && selectedImages.length > duplicateNth) {
+        for (let i = duplicateNth - 1; i < selectedImages.length - 1; i += duplicateNth) {
+          selectedImages[i + 1] = { ...selectedImages[i] };
+        }
+      }
 
       res.json(selectedImages);
     } catch (error) {
