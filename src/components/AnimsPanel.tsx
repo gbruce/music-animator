@@ -180,16 +180,16 @@ const AnimsPanel: React.FC = () => {
             }
           );
 
-          // Upload the returned video and image blobs to the API
-          if (response && response.videoUrl && response.workflowUrl && response.promptId) {
-            const filenameBase = `${response.promptId}-${segment.startFrame}-${segment.durationInFrames}`;
+          // // Upload the returned video and image blobs to the API
+          // if (response && response.videoUrl && response.workflowUrl && response.promptId) {
+          //   const filenameBase = `${response.promptId}-${segment.startFrame}-${segment.durationInFrames}`;
 
-            // Fetch blobs from object URLs
-            const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
+          //   // Fetch blobs from object URLs
+          //   const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
 
-            // Upload video
-            await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
-          }
+          //   // Upload video
+          //   await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
+          // }
 
           // Add the generated animation to the list
           // TODO: Get the actual URL from the ComfyUI response

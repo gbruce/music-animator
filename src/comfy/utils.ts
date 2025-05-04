@@ -102,7 +102,9 @@ export async function runAnimationWorkflow(
     workflow["516"].inputs.Number = startFrame.toString();
     workflow["518"].inputs.Number = durationInFrames.toString();
     workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
-
+    workflow["412"].inputs.filename_prefix = `animator/final/${startFrame}-${durationInFrames}`;
+    workflow["483"].inputs.min_peaks_distance = 16;
+    
     let response: any
     // Enqueue the workflow
     response = await comfyClient.enqueue(
@@ -140,6 +142,8 @@ export async function runAnimationWorkflow(
     if (!response) {
         return;
     }
+
+    console.log('done',startFrame, images, durationInFrames, response);
 
     const subfolder =response["410"].gifs[0].subfolder;
     const filename = response["410"].gifs[0].filename;

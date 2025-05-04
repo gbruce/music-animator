@@ -2,7 +2,7 @@
   "3": {
     "inputs": {
       "seed": [
-        "406",
+        "569",
         0
       ],
       "steps": 8,
@@ -65,7 +65,7 @@
     "inputs": {
       "preset": "PLUS (high strength)",
       "model": [
-        "287",
+        "573",
         0
       ]
     },
@@ -134,7 +134,7 @@
   },
   "56": {
     "inputs": {
-      "image": "ComfyUI_04055_.png"
+      "image": "74176008.jpg"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -143,7 +143,7 @@
   },
   "58": {
     "inputs": {
-      "image": "ComfyUI_04052_.png"
+      "image": "74175729.jpg"
     },
     "class_type": "LoadImage",
     "_meta": {
@@ -336,7 +336,7 @@
   },
   "294": {
     "inputs": {
-      "audio": "New Era.wav",
+      "audio": "test-guitar (Cover) (Cover) (Remastered) (1).wav",
       "start_time": [
         "517",
         1
@@ -492,75 +492,6 @@
       "title": "Positive Prompt"
     }
   },
-  "378": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "CLIP": [
-        "271",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "CLIP"
-    }
-  },
-  "384": {
-    "inputs": {
-      "title_regex": "VAE",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "VAE": [
-        "272",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "VAE"
-    }
-  },
-  "385": {
-    "inputs": {
-      "title_regex": "RGB",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "VAE": [
-        "272",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "VAE"
-    }
-  },
-  "386": {
-    "inputs": {
-      "title_regex": "",
-      "input_regex": "audio",
-      "group_regex": ".*",
-      "AUDIO": [
-        "514",
-        1
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "audio"
-    }
-  },
-  "406": {
-    "inputs": {
-      "seed": 98
-    },
-    "class_type": "Seed Everywhere",
-    "_meta": {
-      "title": "Seed Everywhere"
-    }
-  },
   "407": {
     "inputs": {
       "upscale_method": "lanczos",
@@ -578,11 +509,11 @@
   "410": {
     "inputs": {
       "frame_rate": [
-        "504",
+        "571",
         0
       ],
       "loop_count": 0,
-      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/05-03",
+      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/05-04",
       "format": "video/h264-mp4",
       "pix_fmt": "yuv420p",
       "crf": 19,
@@ -608,10 +539,43 @@
       "title": "First Pass | Low Res"
     }
   },
+  "412": {
+    "inputs": {
+      "frame_rate": [
+        "571",
+        0
+      ],
+      "loop_count": 0,
+      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/Upscale/05-04",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 10,
+      "save_metadata": true,
+      "trim_to_audio": false,
+      "pingpong": false,
+      "save_output": true,
+      "images": [
+        "421",
+        0
+      ],
+      "audio": [
+        "514",
+        1
+      ],
+      "vae": [
+        "272",
+        0
+      ]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": {
+      "title": "Upscale | High High Res"
+    }
+  },
   "417": {
     "inputs": {
       "seed": [
-        "406",
+        "569",
         0
       ],
       "steps": 8,
@@ -780,40 +744,10 @@
       "title": "Apply Advanced ControlNet"
     }
   },
-  "469": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": "width",
-      "group_regex": ".*",
-      "INT": [
-        "504",
-        3
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "width"
-    }
-  },
-  "480": {
-    "inputs": {
-      "title_regex": "RGB SparseCtrl",
-      "input_regex": ".*",
-      "group_regex": ".*",
-      "IMAGE": [
-        "366",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "RGB"
-    }
-  },
   "483": {
     "inputs": {
       "peaks_threshold": 0.4,
-      "min_peaks_distance": 100,
+      "min_peaks_distance": 16,
       "audio_weights": [
         "514",
         2
@@ -847,13 +781,19 @@
   "494": {
     "inputs": {
       "video": "11-21_00001-audio_apo8_ghq5.mp4",
-      "force_rate": 24,
-      "custom_width": 288,
-      "custom_height": 512,
-      "frame_load_cap": [
-        "518",
+      "force_rate": [
+        "571",
         0
       ],
+      "custom_width": [
+        "564",
+        0
+      ],
+      "custom_height": [
+        "565",
+        0
+      ],
+      "frame_load_cap": 0,
       "skip_first_frames": 0,
       "select_every_nth": 1,
       "format": "AnimateDiff"
@@ -943,63 +883,6 @@
       "title": "AIO Aux Preprocessor"
     }
   },
-  "501": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": "fps",
-      "group_regex": ".*",
-      "FLOAT": [
-        "504",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "fps"
-    }
-  },
-  "502": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": "frame_rate",
-      "group_regex": ".*",
-      "FLOAT": [
-        "504",
-        0
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "frame_rate"
-    }
-  },
-  "503": {
-    "inputs": {
-      "title_regex": ".*",
-      "input_regex": "batch_size",
-      "group_regex": ".*",
-      "INT": [
-        "504",
-        1
-      ]
-    },
-    "class_type": "Anything Everywhere?",
-    "_meta": {
-      "title": "batch_size"
-    }
-  },
-  "504": {
-    "inputs": {
-      "video_info": [
-        "494",
-        3
-      ]
-    },
-    "class_type": "VHS_VideoInfoLoaded",
-    "_meta": {
-      "title": "Video Info"
-    }
-  },
   "510": {
     "inputs": {
       "width": 512,
@@ -1032,7 +915,7 @@
         0
       ],
       "fps": [
-        "504",
+        "571",
         0
       ],
       "audio": [
@@ -1069,7 +952,7 @@
   },
   "518": {
     "inputs": {
-      "Number": "120"
+      "Number": "80"
     },
     "class_type": "Int",
     "_meta": {
@@ -1153,13 +1036,63 @@
   },
   "562": {
     "inputs": {
-      "ckpt_name": "SD1.5\\DreamShaper.safetensors",
+      "ckpt_name": "juggernaut_reborn.safetensors",
       "key_opt": "",
       "mode": "Auto"
     },
     "class_type": "CheckpointLoaderSimpleShared //Inspire",
     "_meta": {
       "title": "Shared Checkpoint Loader (Inspire)"
+    }
+  },
+  "564": {
+    "inputs": {
+      "Number": "288"
+    },
+    "class_type": "Int",
+    "_meta": {
+      "title": "Width"
+    }
+  },
+  "565": {
+    "inputs": {
+      "Number": "512"
+    },
+    "class_type": "Int",
+    "_meta": {
+      "title": "Height"
+    }
+  },
+  "569": {
+    "inputs": {
+      "Number": "100"
+    },
+    "class_type": "Int",
+    "_meta": {
+      "title": "Seed"
+    }
+  },
+  "571": {
+    "inputs": {
+      "Number": "24"
+    },
+    "class_type": "Float",
+    "_meta": {
+      "title": "FPS"
+    }
+  },
+  "573": {
+    "inputs": {
+      "lora_name": "add_detail.safetensors",
+      "strength_model": 1,
+      "model": [
+        "287",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
     }
   }
 }
