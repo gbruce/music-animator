@@ -82,6 +82,21 @@ async function main() {
     const updated = updateRes.data;
     console.log('Updated segment:', updated.id, 'startFrame:', updated.startFrame, 'duration:', updated.duration);
 
+    // Read back the segment and confirm patched values
+    const getSegmentsRes = await axios.get(
+      `${API_URL}/segments/projects/${project.id}/segments`,
+      { headers }
+    );
+    const segments = getSegmentsRes.data;
+    const found = segments.find(s => s.id === segment.id);
+    if (!found) {
+      throw new Error('Segment not found after patch');
+    }
+    if (found.startFrame !== 10 || found.duration !== 120) {
+      throw new Error(`Patched values do not match. Got startFrame=${found.startFrame}, duration=${found.duration}`);
+    }
+    console.log('Confirmed patched segment values:', found.id, 'startFrame:', found.startFrame, 'duration:', found.duration);
+
     // Remove the segment
     const removeRes = await axios.delete(
       `${API_URL}/segments/${segment.id}`,

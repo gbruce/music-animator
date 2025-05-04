@@ -53,5 +53,20 @@ export const segmentController = {
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
+  },
+
+  async getSegmentsByProjectId(req: Request, res: Response) {
+    try {
+      const user = req.user;
+      if (!user) return res.status(401).json({ error: 'Not authenticated' });
+      const { projectId } = req.params;
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      if (!project) return res.status(404).json({ error: 'Project not found' });
+      if (project.userId !== user.id) return res.status(403).json({ error: 'Not authorized' });
+      const segments = await segmentService.getSegmentsByProjectId(projectId);
+      res.json(segments);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
   }
 }; 

@@ -7,5 +7,6 @@ const router = Router();
 router.post('/projects/:projectId/segments', auth, segmentController.addSegment);
 router.patch('/:segmentId', auth, segmentController.updateSegment);
 router.delete('/:segmentId', auth, segmentController.removeSegment);
+router.get('/projects/:projectId/segments', auth, segmentController.getSegmentsByProjectId);
 
 export default router; 

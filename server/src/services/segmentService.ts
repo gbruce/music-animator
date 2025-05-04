@@ -70,4 +70,11 @@ export class SegmentService {
     await prisma.segmentImage.deleteMany({ where: { segmentId } });
     await prisma.segment.delete({ where: { id: segmentId } });
   }
+
+  async getSegmentsByProjectId(projectId: string) {
+    return prisma.segment.findMany({
+      where: { projectId },
+      include: { images: true }
+    });
+  }
 } 
