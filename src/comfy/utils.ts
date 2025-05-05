@@ -104,6 +104,7 @@ export async function runAnimationWorkflow(
     workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
     workflow["412"].inputs.filename_prefix = `animator/final/${startFrame}-${durationInFrames}`;
     workflow["483"].inputs.min_peaks_distance = 16;
+    delete workflow["412"];
     
     let response: any
     // Enqueue the workflow

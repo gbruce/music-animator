@@ -450,7 +450,7 @@ export const videoApi = {
     return response.data;
   },
 
-  async uploadGeneratedVideo(blob: Blob, filename: string): Promise<any> {
+  async uploadGeneratedVideo(blob: Blob, filename: string): Promise<Video> {
     const formData = new FormData();
     formData.append('video', blob, filename);
 
@@ -476,4 +476,32 @@ export const videoApi = {
   async move(identifiers: string[], folderId: string | null): Promise<void> {
     await api.post('/videos/move', { identifiers, folderId });
   }
+};
+
+export const segmentApi = {
+  createSegment: async (data: {
+    projectId: string;
+    startFrame: number;
+    duration: number;
+    images: string[];
+    draftVideo: string;
+  }) => {
+    // Convert images to array of { imageId }
+    const images = data.images.map((id, idx) => ({ imageId: id, order: idx }));
+    const payload = {
+      draftVideoId: data.draftVideo,
+      startFrame: data.startFrame,
+      duration: data.duration,
+      images,
+    };
+    const response = await api.post(`/segments/projects/${data.projectId}/segments`, payload);
+    return response.data;
+  },
+  deleteSegment: async (segmentId: string) => {
+    await api.delete(`/segments/${segmentId}`);
+  },
+  getSegmentsByProjectId: async (projectId: string) => {
+    const response = await api.get(`/segments/projects/${projectId}/segments`);
+    return response.data;
+  },
 }; 

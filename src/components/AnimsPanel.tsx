@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -7,15 +7,19 @@ import {
   Paper,
   Button,
   CircularProgress,
+  TextField,
+  IconButton,
 } from '@mui/material';
 import { useAnims } from '../contexts/AnimsContext';
 import { createLogger } from '../utils/logger';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { guess as guessBPM } from 'web-audio-beat-detector';
 import { TimerOutlined as BPMIcon } from '@mui/icons-material';
-import { imageApi, videoApi } from '../services/api';
+import { imageApi, videoApi, Image, segmentApi } from '../services/api';
 import { createOneShotAnimation, AnimationConfig, OneShotAnimation, CreateOneShotAnimationParams } from '../types/oneShotAnimation';
 import { runAnimationWorkflow } from '../comfy/utils';
+import { ArrowUpward as ArrowUpwardIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { useProjects } from '../contexts/ProjectContext';
 
 // Create a logger instance for this component
 const logger = createLogger('AnimsPanel.tsx');
@@ -39,6 +43,17 @@ async function createAnimation(bpm: number, totalDurationSeconds: number): Promi
   return createOneShotAnimation(params);
 }
 
+// Add Segment type locally
+interface Segment {
+  id: string;
+  projectId: string;
+  startFrame: number;
+  duration: number;
+  images: Image[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -48,6 +63,9 @@ const AnimsPanel: React.FC = () => {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [detectedBPM, setDetectedBPM] = useState<number | null>(null);
   const [animationDuration, setAnimationDuration] = useState<number>(10);
+  const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
+  const [duration, setDuration] = useState<number>(10);
+  const [segments, setSegments] = useState<Segment[]>([]);
   
   // Use context for managing state
   const { 
@@ -56,6 +74,28 @@ const AnimsPanel: React.FC = () => {
     generatedAnims,
     setGeneratedAnims
   } = useAnims();
+
+  const { currentProject } = useProjects();
+
+  useEffect(() => {
+    if (currentProject?.id) {
+      segmentApi.getSegmentsByProjectId(currentProject.id).then(setSegments);
+    } else {
+      setSegments([]);
+    }
+  }, [currentProject?.id]);
+
+  // Add segments and handleDeleteSegment as local state and function
+  const handleDeleteSegment = async (segmentId: string) => {
+    try {
+      await segmentApi.deleteSegment(segmentId);
+      setSegments(prev => prev.filter(s => s.id !== segmentId));
+      if (selectedSegment?.id === segmentId) setSelectedSegment(null);
+    } catch (err) {
+      // Optionally show error
+      console.error('Failed to delete segment', err);
+    }
+  };
 
   // Handle file drop
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
@@ -180,16 +220,33 @@ const AnimsPanel: React.FC = () => {
             }
           );
 
-          // // Upload the returned video and image blobs to the API
-          // if (response && response.videoUrl && response.workflowUrl && response.promptId) {
-          //   const filenameBase = `${response.promptId}-${segment.startFrame}-${segment.durationInFrames}`;
+          // Upload the returned video and image blobs to the API
+          if (response && response.videoUrl && response.workflowUrl && response.promptId) {
+            const filenameBase = `${response.promptId}-${segment.startFrame}-${segment.durationInFrames}`;
 
-          //   // Fetch blobs from object URLs
-          //   const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
+            // Fetch blobs from object URLs
+            const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
 
-          //   // Upload video
-          //   await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
-          // }
+            // Upload video
+            const video = await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
+            logger.log(`Uploaded video: ${video.identifier}`);
+
+            // Create segment with video as draftVideo
+            try {
+              if (!currentProject?.id) throw new Error('No project selected');
+              const createdSegment = await segmentApi.createSegment({
+                projectId: currentProject.id,
+                startFrame: segment.startFrame,
+                duration: segment.durationInFrames,
+                images: segment.images.map(img => img.id),
+                draftVideo: video.identifier,
+              });
+              logger.log(`Created segment: ${createdSegment.id}`);
+              setSegments(prev => [...prev, createdSegment]);
+            } catch (err) {
+              logger.error('Error creating segment:', err);
+            }
+          }
 
           // Add the generated animation to the list
           // TODO: Get the actual URL from the ComfyUI response
@@ -214,152 +271,130 @@ const AnimsPanel: React.FC = () => {
   }, [sourceAnim, audioFile, setGeneratedAnims, animationDuration]);
 
   return (
-    <div>
-      {/* Main content area */}
-      <div className={styles.imageContent}>
-        {/* Left column with upload area */}
-        <div className={styles.leftColumn}>
-          {/* Upload area */}
-          <div
-            className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={openFileDialog}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-              accept="audio/mp3,audio/wav"
-            />
-            <div className={styles.dropZoneContent}>
-              <svg
-                className={styles.uploadIcon}
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18V5l12-2v13"/>
-                <circle cx="6" cy="18" r="3"/>
-                <circle cx="18" cy="16" r="3"/>
-              </svg>
-              <p>Drop audio file (MP3/WAV) or click to select</p>
-            </div>
-          </div>
-
-          {/* Show detected BPM if available */}
-          {detectedBPM && (
-            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="h6" color="primary">
-                BPM: {detectedBPM.toFixed(1)}
-              </Typography>
-            </Box>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
+      {/* Top: Audio Drop Target & Quick Menu */}
+      <div style={{ display: 'flex', borderBottom: '2px solid #444', padding: 16, gap: 16, flex: '0 0 auto', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+        {/* Audio Drop Target */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 320,
+            maxWidth: 400,
+            border: '2px dashed #fff',
+            borderRadius: 12,
+            background: isDragging ? '#222' : '#181818',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 80,
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            position: 'relative',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+          }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={openFileDialog}
+        >
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+            accept="audio/*"
+          />
+          {audioFile ? (
+            <span>{audioFile.name}</span>
+          ) : (
+            <span>Drop audio file or click to select</span>
           )}
-
-          {/* Animation Duration Input */}
-          <Box sx={{ mt: 2 }}>
-            <label htmlFor="animation-duration-input">
-              <Typography variant="body2" color="text.secondary">
-                Animation Duration (seconds):
-              </Typography>
-            </label>
-            <input
-              id="animation-duration-input"
-              type="number"
-              min={1}
-              value={animationDuration}
-              onChange={e => setAnimationDuration(Number(e.target.value))}
-              style={{ width: 80, marginTop: 4, color: '#000' }}
-            />
-          </Box>
-
-          {/* Generate Animation Button */}
-          {audioFile && (
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={handleGenerateAnimation}
-                disabled={isGenerating || !audioFile}
-                startIcon={isGenerating ? <CircularProgress size={20} /> : null}
-                fullWidth
-              >
-                {isGenerating ? 'Generating Animation...' : 'Generate Animation'}
-              </Button>
-              {isGenerating && generationProgress && (
-                <Box sx={{ width: '100%', mt: 1 }}>
-                  <Typography variant="body2" color="text.secondary" align="center">
-                    Processing frame {generationProgress.value} of {generationProgress.max}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          )}
-
-          {/* Generated animations grid */}
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: 2, 
-              height: '100%', 
-              minHeight: '70vh',
-              overflow: 'auto',
-              mt: 2
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Generated Animations</Typography>
-            </Box>
-            
-            <Grid container spacing={2}>
-              {generatedAnims.length === 0 && (
-                <Grid item xs={12}>
-                  <Box
-                    sx={{
-                      height: 300,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: '1px dashed #ccc',
-                      borderRadius: 1
-                    }}
-                  >
-                    <Typography color="text.secondary">
-                      No animations generated yet.
-                    </Typography>
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
-          </Paper>
         </div>
-
-        {/* Right side - Preview */}
-        <div className={styles.contentPanel}>
-          {sourceAnim && (
-            <Box sx={{ 
-              mb: 2,
-              position: 'relative',
-              borderRadius: 1,
-              overflow: 'hidden'
-            }}>
-              <audio
-                src={sourceAnim}
-                controls
+        {/* Quick Menu */}
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 400, display: 'flex', alignItems: 'center', gap: 16, background: '#181818', borderRadius: 12, padding: 16, overflow: 'hidden', boxSizing: 'border-box', border: '2px solid #fff' }}>
+          <Typography variant="h6" style={{ color: '#fff', marginRight: 16 }}>Quick Menu</Typography>
+          <TextField
+            label="Duration"
+            type="number"
+            size="small"
+            value={duration}
+            onChange={e => setDuration(Number(e.target.value))}
+            inputProps={{ min: 1 }}
+            sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
+          />
+          <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }}>Generate</Button>
+        </div>
+      </div>
+      {/* Main Content: Segments List & Preview */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+        {/* Left: Segments List */}
+        <div style={{ width: 420, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', borderRight: '2px solid #444' }}>
+          <Typography variant="h5" style={{ color: '#fff', marginBottom: 16, flex: '0 0 auto', fontWeight: 700, letterSpacing: 1 }}>Segments</Typography>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', paddingBottom: 24, border: '2px solid #fff', borderRadius: 12, background: '#121212', padding: 16 }}>
+            {segments.map((segment: Segment) => (
+              <div
+                key={segment.id}
                 style={{
-                  width: '100%',
-                  display: 'block',
+                  marginBottom: 20,
+                  background: '#181818',
+                  border: selectedSegment?.id === segment.id ? '2px solid #0ff' : '2px solid #fff',
+                  borderRadius: 12,
+                  boxShadow: '0 2px 8px 0 rgba(0,0,0,0.25)',
+                  cursor: 'pointer',
+                  transition: 'border 0.2s',
+                  padding: 16,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8
                 }}
-              />
-            </Box>
+                onClick={() => setSelectedSegment(segment)}
+              >
+                <Box display="flex" alignItems="center" gap={2}>
+                  {segment.images[0] && (
+                    <img
+                      src={segment.images[0] ? `/images/${segment.images[0].identifier}` : ''}
+                      alt="segment preview"
+                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '2px solid #fff', background: '#000' }}
+                    />
+                  )}
+                  <Box flex={1}>
+                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: 18 }}>Start: <span style={{ color: '#fff', fontWeight: 400 }}>{segment.startFrame}</span></Typography>
+                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: 18 }}>Duration: <span style={{ color: '#fff', fontWeight: 400 }}>{segment.duration}</span></Typography>
+                    <Box display="flex" mt={1} gap={1}>
+                      {segment.images.map((img: Image, idx: number) => (
+                        <img
+                          key={img.id}
+                          src={`/images/${img.identifier}`}
+                          alt="segment img"
+                          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #fff', background: '#000' }}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                  <Box display="flex" flexDirection="column" alignItems="center" ml={2} gap={1}>
+                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #fff', marginBottom: 4, background: '#222' }}><ArrowUpwardIcon /></IconButton>
+                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #fff', background: '#222' }} onClick={e => { e.stopPropagation(); handleDeleteSegment(segment.id); }}><DeleteIcon /></IconButton>
+                  </Box>
+                </Box>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Right: Segment Preview */}
+        <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#121212', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', paddingBottom: 24 }}>
+          {selectedSegment && selectedSegment.images[0] && (
+            <>
+              <div style={{ border: '2px solid #fff', borderRadius: 16, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.35)', background: '#000', padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <img
+                  src={`/images/${selectedSegment.images[0].identifier}`}
+                  alt="segment preview large"
+                  style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 16, display: 'block', boxSizing: 'border-box', border: '2px solid #fff', background: '#000' }}
+                />
+                <IconButton style={{ color: '#fff', background: '#222', border: '1px solid #fff', marginTop: 8 }}><span style={{ fontSize: 32 }}>▶</span></IconButton>
+              </div>
+            </>
           )}
         </div>
       </div>
