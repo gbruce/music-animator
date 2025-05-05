@@ -396,11 +396,11 @@ const AnimsPanel: React.FC = () => {
         </div>
       </div>
       {/* Main Content: Segments List & Preview */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, height: 'calc(100vh - 112px)', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Left: Segments List */}
-        <div style={{ width: 480, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #444', fontSize: '14pt' }}>
+        <div style={{ width: 480, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #444', fontSize: '14pt' }}>
           <Typography variant="h5" style={{ color: '#fff', marginBottom: 16, flex: '0 0 auto', fontWeight: 700, letterSpacing: 1 }}>Segments</Typography>
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', paddingBottom: 24, border: '1px solid #444', background: '#121212', padding: 16, fontSize: '14pt' }}>
+          <div style={{ flex: 1, minHeight: 0, height: '100%', overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', paddingBottom: 24, border: '1px solid #444', background: '#121212', padding: 16, fontSize: '14pt' }}>
             {segments.map((segment: Segment) => (
               <div
                 key={segment.id}
@@ -460,7 +460,7 @@ const AnimsPanel: React.FC = () => {
           </div>
         </div>
         {/* Right: Segment Preview */}
-        <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#121212', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', paddingBottom: 24 }}>
+        <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#121212', minHeight: 0, height: '100%', overflow: 'hidden', boxSizing: 'border-box', paddingBottom: 24 }}>
           {selectedSegment && (() => {
             const videoId = selectedSegment.upscaleVideoId || selectedSegment.draftVideoId;
             const videoObj = videos.find(v => v.identifier === videoId);
@@ -496,4 +496,4 @@ const AnimsPanel: React.FC = () => {
   );
 };
 
-export default AnimsPanel; 
+export default AnimsPanel;
