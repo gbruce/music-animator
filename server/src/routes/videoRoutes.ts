@@ -42,6 +42,9 @@ router.get('/:identifier/thumbnail', videoController.getVideoThumbnail);
 // Get video full image
 router.get('/:identifier/full-image', videoController.getVideoFullImage);
 
+// Stream video file by identifier
+router.get('/:identifier/stream', videoController.streamVideo);
+
 // Delete a video
 router.delete('/:identifier', videoController.deleteVideo);
 

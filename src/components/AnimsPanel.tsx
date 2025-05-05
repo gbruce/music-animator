@@ -20,6 +20,7 @@ import { createOneShotAnimation, AnimationConfig, OneShotAnimation, CreateOneSho
 import { runAnimationWorkflow } from '../comfy/utils';
 import { ArrowUpward as ArrowUpwardIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useProjects } from '../contexts/ProjectContext';
+import { useVideo } from '../contexts/VideoContext';
 
 // Create a logger instance for this component
 const logger = createLogger('AnimsPanel.tsx');
@@ -52,7 +53,40 @@ interface Segment {
   images: Image[];
   createdAt: string;
   updatedAt: string;
+  draftVideoId?: string;
+  upscaleVideoId?: string;
 }
+
+// AuthenticatedThumbnail component for video thumbnails
+const AuthenticatedThumbnail: React.FC<{ identifier: string; alt?: string; style?: React.CSSProperties }> = ({ identifier, alt, style }) => {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let revoked = false;
+    const fetchThumbnail = async () => {
+      const url = videoApi.getVideoThumbnailUrl(identifier);
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        if (!revoked) setSrc(objectUrl);
+      } else {
+        if (!revoked) setSrc(null);
+      }
+    };
+    fetchThumbnail();
+    return () => {
+      revoked = true;
+      if (src) URL.revokeObjectURL(src);
+    };
+  }, [identifier]);
+
+  if (!src) return <div style={{ ...style, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>No Thumbnail</div>;
+  return <img src={src} alt={alt} style={style} />;
+};
 
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -66,6 +100,8 @@ const AnimsPanel: React.FC = () => {
   const [selectedSegment, setSelectedSegment] = useState<Segment | null>(null);
   const [duration, setDuration] = useState<number>(10);
   const [segments, setSegments] = useState<Segment[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
   
   // Use context for managing state
   const { 
@@ -76,6 +112,7 @@ const AnimsPanel: React.FC = () => {
   } = useAnims();
 
   const { currentProject } = useProjects();
+  const { videos, fetchVideos } = useVideo();
 
   useEffect(() => {
     if (currentProject?.id) {
@@ -84,6 +121,35 @@ const AnimsPanel: React.FC = () => {
       setSegments([]);
     }
   }, [currentProject?.id]);
+
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+    const fetchVideoUrl = async () => {
+      setVideoUrl(null);
+      setVideoLoading(false);
+      if (!selectedSegment) return;
+      const videoId = selectedSegment.upscaleVideoId || selectedSegment.draftVideoId;
+      const videoObj = videos.find(v => v.identifier === videoId);
+      if (videoObj) {
+        setVideoLoading(true);
+        try {
+          const url = await videoApi.getVideoUrl(videoObj.identifier);
+          setVideoUrl(url);
+          revokedUrl = url;
+        } finally {
+          setVideoLoading(false);
+        }
+      }
+    };
+    fetchVideoUrl();
+    return () => {
+      if (revokedUrl) URL.revokeObjectURL(revokedUrl);
+    };
+  }, [selectedSegment, videos]);
 
   // Add segments and handleDeleteSegment as local state and function
   const handleDeleteSegment = async (segmentId: string) => {
@@ -273,15 +339,15 @@ const AnimsPanel: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Top: Audio Drop Target & Quick Menu */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #444', padding: 16, gap: 16, flex: '0 0 auto', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid #444', padding: 16, gap: 16, flex: '0 0 auto', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Audio Drop Target */}
         <div
           style={{
             flex: 1,
             minWidth: 320,
             maxWidth: 400,
-            border: '2px dashed #fff',
-            borderRadius: 12,
+            border: '1px dashed #444',
+            borderRadius: 8,
             background: isDragging ? '#222' : '#181818',
             color: '#fff',
             display: 'flex',
@@ -313,7 +379,7 @@ const AnimsPanel: React.FC = () => {
           )}
         </div>
         {/* Quick Menu */}
-        <div style={{ flex: 1, minWidth: 320, maxWidth: 400, display: 'flex', alignItems: 'center', gap: 16, background: '#181818', borderRadius: 12, padding: 16, overflow: 'hidden', boxSizing: 'border-box', border: '2px solid #fff' }}>
+        <div style={{ flex: 1, minWidth: 320, maxWidth: 400, display: 'flex', alignItems: 'center', gap: 16, background: '#181818', padding: 16, overflow: 'hidden', boxSizing: 'border-box', border: '1px solid #444', fontSize: '14pt' }}>
           <Typography variant="h6" style={{ color: '#fff', marginRight: 16 }}>Quick Menu</Typography>
           <TextField
             label="Duration"
@@ -330,52 +396,61 @@ const AnimsPanel: React.FC = () => {
       {/* Main Content: Segments List & Preview */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Left: Segments List */}
-        <div style={{ width: 420, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', borderRight: '2px solid #444' }}>
+        <div style={{ width: 480, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #444', fontSize: '14pt' }}>
           <Typography variant="h5" style={{ color: '#fff', marginBottom: 16, flex: '0 0 auto', fontWeight: 700, letterSpacing: 1 }}>Segments</Typography>
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', paddingBottom: 24, border: '2px solid #fff', borderRadius: 12, background: '#121212', padding: 16 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', boxSizing: 'border-box', paddingBottom: 24, border: '1px solid #444', background: '#121212', padding: 16, fontSize: '14pt' }}>
             {segments.map((segment: Segment) => (
               <div
                 key={segment.id}
                 style={{
                   marginBottom: 20,
                   background: '#181818',
-                  border: selectedSegment?.id === segment.id ? '2px solid #0ff' : '2px solid #fff',
-                  borderRadius: 12,
+                  border: selectedSegment?.id === segment.id ? '1.5px solid #0ff' : '1px solid #444',
                   boxShadow: '0 2px 8px 0 rgba(0,0,0,0.25)',
                   cursor: 'pointer',
                   transition: 'border 0.2s',
                   padding: 16,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 8
+                  gap: 8,
+                  fontSize: '14px',
+                  width: '100%'
                 }}
                 onClick={() => setSelectedSegment(segment)}
               >
                 <Box display="flex" alignItems="center" gap={2}>
-                  {segment.images[0] && (
-                    <img
-                      src={segment.images[0] ? `/images/${segment.images[0].identifier}` : ''}
-                      alt="segment preview"
-                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '2px solid #fff', background: '#000' }}
+                  {/* Video Thumbnail */}
+                  {segment.draftVideoId ? (
+                    <AuthenticatedThumbnail
+                      identifier={segment.draftVideoId}
+                      alt="segment video thumbnail"
+                      style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid #444', background: '#000' }}
                     />
+                  ) : (
+                    <Box width={80} height={80} borderRadius={8} border="1px solid #444" bgcolor="#222" display="flex" alignItems="center" justifyContent="center">
+                      <Typography color="#fff" variant="caption">No Video</Typography>
+                    </Box>
                   )}
+                  {/* Images Thumbnails */}
                   <Box flex={1}>
-                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: 18 }}>Start: <span style={{ color: '#fff', fontWeight: 400 }}>{segment.startFrame}</span></Typography>
-                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: 18 }}>Duration: <span style={{ color: '#fff', fontWeight: 400 }}>{segment.duration}</span></Typography>
+                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>Start: <span style={{ color: '#fff', fontWeight: 400, fontSize: '14px' }}>{segment.startFrame}</span></Typography>
+                    <Typography style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>Duration: <span style={{ color: '#fff', fontWeight: 400, fontSize: '14px' }}>{segment.duration}</span></Typography>
                     <Box display="flex" mt={1} gap={1}>
                       {segment.images.map((img: Image, idx: number) => (
-                        <img
-                          key={img.id}
-                          src={`/images/${img.identifier}`}
-                          alt="segment img"
-                          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #fff', background: '#000' }}
-                        />
+                        img.identifier ? (
+                          <img
+                            key={img.id}
+                            src={imageApi.getImageUrl(img.identifier)}
+                            alt="segment img"
+                            style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #444', background: '#000' }}
+                          />
+                        ) : null
                       ))}
                     </Box>
                   </Box>
                   <Box display="flex" flexDirection="column" alignItems="center" ml={2} gap={1}>
-                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #fff', marginBottom: 4, background: '#222' }}><ArrowUpwardIcon /></IconButton>
-                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #fff', background: '#222' }} onClick={e => { e.stopPropagation(); handleDeleteSegment(segment.id); }}><DeleteIcon /></IconButton>
+                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #444', marginBottom: 4, background: '#222' }}><ArrowUpwardIcon /></IconButton>
+                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #444', background: '#222' }} onClick={e => { e.stopPropagation(); handleDeleteSegment(segment.id); }}><DeleteIcon /></IconButton>
                   </Box>
                 </Box>
               </div>
@@ -384,18 +459,35 @@ const AnimsPanel: React.FC = () => {
         </div>
         {/* Right: Segment Preview */}
         <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#121212', height: 560, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box', paddingBottom: 24 }}>
-          {selectedSegment && selectedSegment.images[0] && (
-            <>
-              <div style={{ border: '2px solid #fff', borderRadius: 16, boxShadow: '0 2px 16px 0 rgba(0,0,0,0.35)', background: '#000', padding: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          {selectedSegment && (() => {
+            const videoId = selectedSegment.upscaleVideoId || selectedSegment.draftVideoId;
+            const videoObj = videos.find(v => v.identifier === videoId);
+            if (videoObj) {
+              return (
+                videoLoading ? (
+                  <div style={{ color: '#fff', padding: 32 }}>Loading video...</div>
+                ) : videoUrl ? (
+                  <video
+                    src={videoUrl}
+                    controls
+                    style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <div style={{ color: '#fff', padding: 32 }}>No video available</div>
+                )
+              );
+            } else if (selectedSegment.images[0]) {
+              return (
                 <img
                   src={`/images/${selectedSegment.images[0].identifier}`}
                   alt="segment preview large"
-                  style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', borderRadius: 12, marginBottom: 16, display: 'block', boxSizing: 'border-box', border: '2px solid #fff', background: '#000' }}
+                  style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
                 />
-                <IconButton style={{ color: '#fff', background: '#222', border: '1px solid #fff', marginTop: 8 }}><span style={{ fontSize: 32 }}>▶</span></IconButton>
-              </div>
-            </>
-          )}
+              );
+            } else {
+              return null;
+            }
+          })()}
         </div>
       </div>
     </div>

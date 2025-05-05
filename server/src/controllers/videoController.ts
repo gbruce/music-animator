@@ -547,5 +547,51 @@ export const videoController = {
       console.error('Error getting video full image:', error);
       res.status(500).json({ error: 'Failed to get video full image' });
     }
+  },
+
+  // Stream video file by identifier (with range support)
+  async streamVideo(req: Request, res: Response): Promise<void> {
+    try {
+      const { identifier } = req.params;
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+      const video = await prisma.video.findFirst({
+        where: { identifier, userId }
+      });
+      if (!video) {
+        res.status(404).json({ error: 'Video not found' });
+        return;
+      }
+      const videoPath = video.filePath;
+      const stat = fs.statSync(videoPath);
+      const fileSize = stat.size;
+      const range = req.headers.range;
+      if (range) {
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = (end - start) + 1;
+        const file = fs.createReadStream(videoPath, { start, end });
+        res.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': chunkSize,
+          'Content-Type': 'video/mp4',
+        });
+        file.pipe(res);
+      } else {
+        res.writeHead(200, {
+          'Content-Length': fileSize,
+          'Content-Type': 'video/mp4',
+        });
+        fs.createReadStream(videoPath).pipe(res);
+      }
+    } catch (error) {
+      console.error('Error streaming video:', error);
+      res.status(500).json({ error: 'Failed to stream video' });
+    }
   }
 }; 

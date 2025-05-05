@@ -475,7 +475,16 @@ export const videoApi = {
 
   async move(identifiers: string[], folderId: string | null): Promise<void> {
     await api.post('/videos/move', { identifiers, folderId });
-  }
+  },
+
+  getVideoThumbnailUrl: (identifier: string): string => {
+    return `${API_URL}/videos/${identifier}/thumbnail`;
+  },
+
+  getVideoUrl: async (identifier: string): Promise<string> => {
+    const response = await api.get(`/videos/${identifier}/stream`, { responseType: 'blob' });
+    return URL.createObjectURL(response.data);
+  },
 };
 
 export const segmentApi = {
