@@ -339,9 +339,9 @@ const AnimsPanel: React.FC = () => {
   }, [sourceAnim, audioFile, setGeneratedAnims, animationDuration]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 182px)', maxHeight: 'calc(100vh - 182px)', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Top: Audio Drop Target & Quick Menu */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #444', padding: 16, gap: 16, flex: '0 0 auto', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', borderBottom: '1px solid #444', padding: 16, gap: 16, flex: '0 0 auto', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Audio Drop Target */}
         <div
           style={{
@@ -396,7 +396,7 @@ const AnimsPanel: React.FC = () => {
         </div>
       </div>
       {/* Main Content: Segments List & Preview */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, height: 'calc(100vh - 112px)', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Left: Segments List */}
         <div style={{ width: 480, background: '#181818', padding: 24, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', boxSizing: 'border-box', borderRight: '1px solid #444', fontSize: '14pt' }}>
           <Typography variant="h5" style={{ color: '#fff', marginBottom: 16, flex: '0 0 auto', fontWeight: 700, letterSpacing: 1 }}>Segments</Typography>
