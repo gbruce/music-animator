@@ -297,6 +297,8 @@ const AnimsPanel: React.FC = () => {
             const video = await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}.mp4`);
             logger.log(`Uploaded video: ${video.identifier}`);
 
+            await fetchVideos();
+
             // Create segment with video as draftVideo
             try {
               if (!currentProject?.id) throw new Error('No project selected');
@@ -390,7 +392,7 @@ const AnimsPanel: React.FC = () => {
             inputProps={{ min: 1 }}
             sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
           />
-          <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }}>Generate</Button>
+          <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }} disabled={!audioFile}>Generate</Button>
         </div>
       </div>
       {/* Main Content: Segments List & Preview */}
