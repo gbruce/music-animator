@@ -497,7 +497,7 @@
       "upscale_method": "lanczos",
       "scale_by": 1.5,
       "image": [
-        "8",
+        "578",
         0
       ]
     },
@@ -513,7 +513,7 @@
         0
       ],
       "loop_count": 0,
-      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/05-04",
+      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/FirstPass/05-06",
       "format": "video/h264-mp4",
       "pix_fmt": "yuv420p",
       "crf": 19,
@@ -546,7 +546,7 @@
         0
       ],
       "loop_count": 0,
-      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/Upscale/05-04",
+      "filename_prefix": "AudioReactive_Yvann/ImagesToVideo/Upscale/05-06",
       "format": "video/h264-mp4",
       "pix_fmt": "yuv420p",
       "crf": 10,
@@ -800,7 +800,7 @@
     },
     "class_type": "VHS_LoadVideo",
     "_meta": {
-      "title": "Load Video (Upload) 🎥🅥🅗🅢"
+      "title": "ControlNet Video"
     }
   },
   "495": {
@@ -1093,6 +1093,49 @@
     "class_type": "LoraLoaderModelOnly",
     "_meta": {
       "title": "LoraLoaderModelOnly"
+    }
+  },
+  "577": {
+    "inputs": {
+      "video": "05-04_00013.mp4",
+      "force_rate": [
+        "571",
+        0
+      ],
+      "custom_width": [
+        "564",
+        0
+      ],
+      "custom_height": [
+        "565",
+        0
+      ],
+      "frame_load_cap": 50,
+      "skip_first_frames": 0,
+      "select_every_nth": 1,
+      "format": "AnimateDiff"
+    },
+    "class_type": "VHS_LoadVideo",
+    "_meta": {
+      "title": "Draft Video"
+    }
+  },
+  "578": {
+    "inputs": {
+      "select": 1,
+      "sel_mode": false,
+      "input1": [
+        "8",
+        0
+      ],
+      "input2": [
+        "577",
+        0
+      ]
+    },
+    "class_type": "ImpactSwitch",
+    "_meta": {
+      "title": "Upscale Switch"
     }
   }
 }

@@ -28,7 +28,8 @@ export async function runAnimationWorkflow(
     images: Image[],
     durationInFrames: number,
     audio: File,
-    onProgress?: (max: number, value: number) => void
+    onProgress?: (max: number, value: number) => void,
+    draftVideoId?: string,
 ) {
     logger.log(`Running animation workflow`);
 
@@ -67,18 +68,7 @@ export async function runAnimationWorkflow(
         logger.log(`Image uploaded successfully to ComfyUI: ${uploadedImageName}`);
         
 
-        if (i == 0) {
-            workflow["56"].inputs.image = uploadedImageName;
-        }
-        else if (i == 1) {
-            workflow["58"].inputs.image = uploadedImageName;
-        }
-        else if (i == 2) {
-            workflow["267"].inputs.image = uploadedImageName;
-        }
-        else if (i == 3) {
-            workflow["372"].inputs.image = uploadedImageName;
-        }
+        findNodeByClassTypeAndTitle(workflow, "LoadImage", `Image${i+1}`).inputs.image = uploadedImageName;
     }
 
     // Upload audio file to ComfyUI
@@ -94,17 +84,54 @@ export async function runAnimationWorkflow(
     const audioUploadResult = await audioUploadResponse.json();
     const uploadedAudioName = audioUploadResult.name;
     logger.log(`Audio uploaded successfully to ComfyUI: ${uploadedAudioName}`);
-    // Set the audio file in the workflow (node 294)
-    if (workflow["294"] && workflow["294"].inputs) {
-        workflow["294"].inputs.audio = uploadedAudioName;
+
+    findNodeByClassTypeAndTitle(workflow, "VHS_LoadAudioUpload", "Load Audio (Upload)").inputs.audio = uploadedAudioName;
+
+     // if a draft video is provided, we need to upscale
+    if (draftVideoId) {
+        removeNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "First Pass | Low Res");
+
+        findNodeByClassTypeAndTitle(workflow, "ImpactSwitch", "Upscale Switch").inputs.select = 2;
+
+        findNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "Upscale | High High Res").inputs.filename_prefix =
+        `animator/final/${startFrame}-${durationInFrames}`;
+
+    
+        const node = findNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
+        // upload draft video
+        // if (node && node.inputs && node.inputs.draftVideo instanceof File) {
+        //     const draftVideoFormData = new FormData();
+        //     draftVideoFormData.append('image', node.inputs.draftVideo, node.inputs.draftVideo.name);
+        //     const draftVideoUploadResponse = await comfyClient.fetchApi('/api/upload/image', {
+        //         method: 'POST',
+        //         body: draftVideoFormData,
+        //     });
+        //     if (!draftVideoUploadResponse.ok) {
+        //         throw new Error(`Failed to upload draft video: ${draftVideoUploadResponse.statusText}`);
+        //     }
+        //     const draftVideoUploadResult = await draftVideoUploadResponse.json();
+        //     const uploadedDraftVideoName = draftVideoUploadResult.name;
+        //     logger.log(`Draft video uploaded successfully to ComfyUI: ${uploadedDraftVideoName}`);
+        //     node.inputs.draftVideo = uploadedDraftVideoName;
+        // }
+    }
+    else {
+        removeNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "Upscale | High High Res");
+        removeNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
+        findNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "First Pass | Low Res").inputs.filename_prefix =
+        `animator/draft/${startFrame}-${durationInFrames}`;
     }
 
-    workflow["516"].inputs.Number = startFrame.toString();
-    workflow["518"].inputs.Number = durationInFrames.toString();
-    workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
-    workflow["412"].inputs.filename_prefix = `animator/final/${startFrame}-${durationInFrames}`;
-    workflow["483"].inputs.min_peaks_distance = 16;
-    delete workflow["412"];
+    findNodeByClassTypeAndTitle(workflow, "Int", "Start Time").inputs.Number = startFrame.toString();
+    findNodeByClassTypeAndTitle(workflow, "Int", "Batch Size").inputs.Number = durationInFrames.toString();
+    findNodeByClassTypeAndTitle(workflow, "Audio Peaks Detection", "Audio Peaks Detection").inputs.min_peaks_distance = 16;
+
+    // workflow["516"].inputs.Number = startFrame.toString();
+    // workflow["518"].inputs.Number = durationInFrames.toString();
+    // workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
+    // workflow["412"].inputs.filename_prefix = `animator/final/${startFrame}-${durationInFrames}`;
+    // workflow["483"].inputs.min_peaks_distance = 16;
+    
     
     let response: any
     // Enqueue the workflow
@@ -146,9 +173,18 @@ export async function runAnimationWorkflow(
 
     console.log('done',startFrame, images, durationInFrames, response);
 
-    const subfolder =response["410"].gifs[0].subfolder;
-    const filename = response["410"].gifs[0].filename;
-    const workflowImage = response["410"].gifs[0].workflow;
+    let vhsCombine;
+
+    if (draftVideoId) {
+        vhsCombine = response[412];
+    }
+    else {
+        vhsCombine = response[410];
+    }
+
+    const subfolder =vhsCombine.gifs[0].subfolder;;
+    const filename = vhsCombine.gifs[0].filename;;
+    const workflowImage = vhsCombine.gifs[0].workflow;;
 
     async function getComfyFileAsBlob(filename: string, subfolder: string) {
         const videoResponse = await comfyClient.fetchApi(`/api/view?filename=${filename}&subfolder=${subfolder}`);
@@ -165,4 +201,71 @@ export async function runAnimationWorkflow(
         workflowUrl,
         promptId: prompt_id,
     };
+}
+
+/**
+ * Search for a node in a ComfyUI JSON graph by class_type and _meta.title.
+ * @param json The parsed JSON object.
+ * @param classType The class_type to match.
+ * @param title The _meta.title to match.
+ * @returns The node object if found, otherwise null.
+ */
+export function findNodeByClassTypeAndTitle(json: any, classType: string, title: string): any | null {
+  for (const key in json) {
+    if (Object.prototype.hasOwnProperty.call(json, key)) {
+      const node = json[key];
+      if (
+        node.class_type === classType &&
+        node._meta && node._meta.title === title
+      ) {
+        return node;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Removes a node from a ComfyUI JSON graph by class_type and _meta.title.
+ * @param json The parsed JSON object (workflow).
+ * @param classType The class_type to match.
+ * @param title The _meta.title to match.
+ * @returns True if a node was removed, false otherwise.
+ */
+export function removeNodeByClassTypeAndTitle(json: any, classType: string, title: string): boolean {
+  for (const key in json) {
+    if (Object.prototype.hasOwnProperty.call(json, key)) {
+      const node = json[key];
+      if (
+        node.class_type === classType &&
+        node._meta && node._meta.title === title
+      ) {
+        delete json[key];
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Returns the key of a node in a ComfyUI JSON graph by class_type and _meta.title.
+ * @param json The parsed JSON object.
+ * @param classType The class_type to match.
+ * @param title The _meta.title to match.
+ * @returns The key as a string if found, otherwise null.
+ */
+export function findNodeKeyByClassTypeAndTitle(json: any, classType: string, title: string): string | null {
+  for (const key in json) {
+    if (Object.prototype.hasOwnProperty.call(json, key)) {
+      const node = json[key];
+      if (
+        node.class_type === classType &&
+        node._meta && node._meta.title === title
+      ) {
+        return key;
+      }
+    }
+  }
+  return null;
 }

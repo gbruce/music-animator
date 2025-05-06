@@ -102,6 +102,8 @@ const AnimsPanel: React.FC = () => {
   const [segments, setSegments] = useState<Segment[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
+  const [upscaleUrl, setUpscaleUrl] = useState<string | null>(null);
+  const [upscaleLoading, setUpscaleLoading] = useState(false);
   
   // Use context for managing state
   const { 
@@ -146,6 +148,24 @@ const AnimsPanel: React.FC = () => {
       }
     };
     fetchVideoUrl();
+    return () => {
+      if (revokedUrl) URL.revokeObjectURL(revokedUrl);
+    };
+  }, [selectedSegment, videos]);
+
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+    const upscaleVideoId = selectedSegment?.upscaleVideoId;
+    const upscaleVideoObj = videos.find(v => v.identifier === upscaleVideoId);
+    if (upscaleVideoObj) {
+      setUpscaleLoading(true);
+      videoApi.getVideoUrl(upscaleVideoObj.identifier).then(url => {
+        setUpscaleUrl(url);
+        revokedUrl = url;
+      }).finally(() => setUpscaleLoading(false));
+    } else {
+      setUpscaleUrl(null);
+    }
     return () => {
       if (revokedUrl) URL.revokeObjectURL(revokedUrl);
     };
@@ -462,33 +482,69 @@ const AnimsPanel: React.FC = () => {
         {/* Right: Segment Preview */}
         <div style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#121212', minHeight: 0, height: '100%', overflow: 'hidden', boxSizing: 'border-box', paddingBottom: 24 }}>
           {selectedSegment && (() => {
-            const videoId = selectedSegment.upscaleVideoId || selectedSegment.draftVideoId;
-            const videoObj = videos.find(v => v.identifier === videoId);
-            if (videoObj) {
-              return (
-                videoLoading ? (
-                  <div style={{ color: '#fff', padding: 32 }}>Loading video...</div>
-                ) : videoUrl ? (
-                  <video
-                    src={videoUrl}
-                    controls
-                    style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
-                  />
-                ) : (
-                  <div style={{ color: '#fff', padding: 32 }}>No video available</div>
-                )
+            let previewContent: React.ReactNode = null;
+            const draftVideoId = selectedSegment.draftVideoId;
+            const upscaleVideoId = selectedSegment.upscaleVideoId;
+            const draftVideoObj = videos.find(v => v.identifier === draftVideoId);
+            const upscaleVideoObj = videos.find(v => v.identifier === upscaleVideoId);
+
+            if (draftVideoObj) {
+              previewContent = (
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 32 }}>
+                  {/* Draft Video */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ color: '#bbb', fontSize: 13, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Draft</div>
+                    {videoLoading ? (
+                      <div style={{ color: '#fff', padding: 32 }}>Loading video...</div>
+                    ) : videoUrl ? (
+                      <video
+                        src={videoUrl}
+                        controls
+                        style={{ width: 260, height: 480, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
+                      />
+                    ) : (
+                      <div style={{ color: '#fff', padding: 32 }}>No video available</div>
+                    )}
+                  </div>
+                  {/* Upscaled Video */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ color: '#bbb', fontSize: 13, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Upscaled</div>
+                    {upscaleVideoObj ? (
+                      upscaleLoading ? (
+                        <div style={{ color: '#fff', padding: 32 }}>Loading video...</div>
+                      ) : upscaleUrl ? (
+                        <video
+                          src={upscaleUrl}
+                          controls
+                          style={{ width: 260, height: 480, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
+                        />
+                      ) : (
+                        <div style={{ width: 260, height: 480, background: '#222', border: '1px solid #444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Button variant="contained" color="primary" sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}>
+                            Upscale
+                          </Button>
+                        </div>
+                      )
+                    ) : (
+                      <div style={{ width: 260, height: 480, background: '#222', border: '1px solid #444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Button variant="contained" color="primary" sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}>
+                          Upscale
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               );
             } else if (selectedSegment.images[0]) {
-              return (
+              previewContent = (
                 <img
                   src={`/images/${selectedSegment.images[0].identifier}`}
                   alt="segment preview large"
                   style={{ maxHeight: 480, maxWidth: '100%', width: 260, objectFit: 'cover', border: '1px solid #444', background: '#000', display: 'block', boxSizing: 'border-box' }}
                 />
               );
-            } else {
-              return null;
             }
+            return previewContent;
           })()}
         </div>
       </div>
