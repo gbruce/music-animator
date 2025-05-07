@@ -118,7 +118,7 @@ export async function runAnimationWorkflow(
     }
     else {
         removeNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "Upscale | High High Res");
-        removeNodeByClassTypeAndTitle(workflow, c);
+        removeNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
         findNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "First Pass | Low Res").inputs.filename_prefix =
         `animator/draft/${startFrame}-${durationInFrames}`;
     }
@@ -127,13 +127,6 @@ export async function runAnimationWorkflow(
     findNodeByClassTypeAndTitle(workflow, "Int", "Batch Size").inputs.Number = durationInFrames.toString();
     findNodeByClassTypeAndTitle(workflow, "Audio Peaks Detection", "Audio Peaks Detection").inputs.min_peaks_distance = 16;
 
-    // workflow["516"].inputs.Number = startFrame.toString();
-    // workflow["518"].inputs.Number = durationInFrames.toString();
-    // workflow["410"].inputs.filename_prefix = `animator/draft/${startFrame}-${durationInFrames}`;
-    // workflow["412"].inputs.filename_prefix = `animator/final/${startFrame}-${durationInFrames}`;
-    // workflow["483"].inputs.min_peaks_distance = 16;
-    
-    
     let response: any
     // Enqueue the workflow
     response = await comfyClient.enqueue(
