@@ -358,6 +358,53 @@ const AnimsPanel: React.FC = () => {
     }
   }, [sourceAnim, audioFile, setGeneratedAnims, animationDuration]);
 
+  // Add handleUpscale function
+  const handleUpscale = useCallback(async () => {
+    if (selectedSegment && audioFile) {
+      logger.log(`Starting upscale for segment: ${JSON.stringify(selectedSegment)}`);
+      
+      try {
+        const response = await runAnimationWorkflow(
+          selectedSegment.startFrame,
+          selectedSegment.images,
+          selectedSegment.duration,
+          audioFile,
+          (max, value) => {
+            setGenerationProgress({ max, value });
+          },
+          selectedSegment.draftVideoId
+        );
+
+        if (response && response.videoUrl && response.workflowUrl && response.promptId) {
+          const filenameBase = `${response.promptId}-${selectedSegment.startFrame}-${selectedSegment.duration}`;
+
+          // Fetch blobs from object URLs
+          const videoBlob = await fetch(response.videoUrl).then(r => r.blob());
+
+          // Upload video
+          const video = await videoApi.uploadGeneratedVideo(videoBlob, `${filenameBase}-upscaled.mp4`);
+          logger.log(`Uploaded upscaled video: ${video.identifier}`);
+
+          await fetchVideos();
+
+          // Update segment with upscaled video
+          try {
+            if (!currentProject?.id) throw new Error('No project selected');
+            const updatedSegment = await segmentApi.updateSegment(selectedSegment.id, {
+              upscaleVideoId: video.identifier,
+            });
+            logger.log(`Updated segment with upscaled video: ${updatedSegment.id}`);
+            setSegments(prev => prev.map(s => s.id === updatedSegment.id ? updatedSegment : s));
+          } catch (err) {
+            logger.error('Error updating segment with upscaled video:', err);
+          }
+        }
+      } catch (error) {
+        logger.error('Error during upscale workflow:', error);
+      }
+    }
+  }, [selectedSegment, audioFile, currentProject?.id, videos]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 182px)', maxHeight: 'calc(100vh - 182px)', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Top: Audio Drop Target & Quick Menu */}
@@ -471,8 +518,13 @@ const AnimsPanel: React.FC = () => {
                     </Box>
                   </Box>
                   <Box display="flex" flexDirection="column" alignItems="center" ml={2} gap={1}>
-                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #444', marginBottom: 4, background: '#222' }}><ArrowUpwardIcon /></IconButton>
-                    <IconButton size="small" style={{ color: '#fff', border: '1px solid #444', background: '#222' }} onClick={e => { e.stopPropagation(); handleDeleteSegment(segment.id); }}><DeleteIcon /></IconButton>
+                    <IconButton 
+                      size="small" 
+                      style={{ color: '#fff', border: '1px solid #444', background: '#222' }} 
+                      onClick={e => { e.stopPropagation(); handleDeleteSegment(segment.id); }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </Box>
                 </Box>
               </div>
@@ -520,14 +572,24 @@ const AnimsPanel: React.FC = () => {
                         />
                       ) : (
                         <div style={{ width: 260, height: 480, background: '#222', border: '1px solid #444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Button variant="contained" color="primary" sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}>
+                          <Button 
+                            variant="contained" 
+                            color="primary" 
+                            sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}
+                            onClick={handleUpscale}
+                          >
                             Upscale
                           </Button>
                         </div>
                       )
                     ) : (
                       <div style={{ width: 260, height: 480, background: '#222', border: '1px solid #444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Button variant="contained" color="primary" sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}>
+                        <Button 
+                          variant="contained" 
+                          color="primary" 
+                          sx={{ minWidth: 100, fontSize: 16, padding: '8px 24px', borderRadius: 2 }}
+                          onClick={handleUpscale}
+                        >
                           Upscale
                         </Button>
                       </div>

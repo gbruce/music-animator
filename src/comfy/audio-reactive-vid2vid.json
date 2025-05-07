@@ -497,7 +497,7 @@
       "upscale_method": "lanczos",
       "scale_by": 1.5,
       "image": [
-        "578",
+        "8",
         0
       ]
     },
@@ -618,7 +618,7 @@
     },
     "class_type": "VAEEncode",
     "_meta": {
-      "title": "VAE Encode"
+      "title": "VAE Encode Upscale"
     }
   },
   "419": {
@@ -1110,7 +1110,7 @@
         "565",
         0
       ],
-      "frame_load_cap": 50,
+      "frame_load_cap": 0,
       "skip_first_frames": 0,
       "select_every_nth": 1,
       "format": "AnimateDiff"
@@ -1118,24 +1118,6 @@
     "class_type": "VHS_LoadVideo",
     "_meta": {
       "title": "Draft Video"
-    }
-  },
-  "578": {
-    "inputs": {
-      "select": 1,
-      "sel_mode": false,
-      "input1": [
-        "8",
-        0
-      ],
-      "input2": [
-        "577",
-        0
-      ]
-    },
-    "class_type": "ImpactSwitch",
-    "_meta": {
-      "title": "Upscale Switch"
     }
   }
 }

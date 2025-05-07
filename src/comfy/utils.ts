@@ -1,4 +1,4 @@
-import { Image } from '../services/api';
+import { Image, videoApi } from '../services/api';
 import vid2vid from './audio-reactive-vid2vid.json';
 import { Client } from '@stable-canvas/comfyui-client';
 import { imageApi } from '../services/api';
@@ -91,33 +91,34 @@ export async function runAnimationWorkflow(
     if (draftVideoId) {
         removeNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "First Pass | Low Res");
 
-        findNodeByClassTypeAndTitle(workflow, "ImpactSwitch", "Upscale Switch").inputs.select = 2;
-
+        const loadVideoKey = findNodeKeyByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
+        findNodeByClassTypeAndTitle(workflow, "ImageScaleBy", "Upscale Image By").inputs.image = [loadVideoKey, 0];
         findNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "Upscale | High High Res").inputs.filename_prefix =
         `animator/final/${startFrame}-${durationInFrames}`;
 
-    
         const node = findNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
+        
         // upload draft video
-        // if (node && node.inputs && node.inputs.draftVideo instanceof File) {
-        //     const draftVideoFormData = new FormData();
-        //     draftVideoFormData.append('image', node.inputs.draftVideo, node.inputs.draftVideo.name);
-        //     const draftVideoUploadResponse = await comfyClient.fetchApi('/api/upload/image', {
-        //         method: 'POST',
-        //         body: draftVideoFormData,
-        //     });
-        //     if (!draftVideoUploadResponse.ok) {
-        //         throw new Error(`Failed to upload draft video: ${draftVideoUploadResponse.statusText}`);
-        //     }
-        //     const draftVideoUploadResult = await draftVideoUploadResponse.json();
-        //     const uploadedDraftVideoName = draftVideoUploadResult.name;
-        //     logger.log(`Draft video uploaded successfully to ComfyUI: ${uploadedDraftVideoName}`);
-        //     node.inputs.draftVideo = uploadedDraftVideoName;
-        // }
+        const videoFormData = new FormData();
+        const videoUrl = await videoApi.getVideoUrl(draftVideoId);
+        const videoBlob = await fetch(videoUrl).then(r => r.blob());
+        videoFormData.append('image', new File([videoBlob], 'draft.mp4', { type: 'video/mp4' }), "draft.mp4");
+        const videoUploadResponse = await comfyClient.fetchApi('/api/upload/image', {
+            method: 'POST',
+            body: videoFormData,
+        });
+        if (!videoUploadResponse.ok) {
+            throw new Error(`Failed to upload draft video: ${videoUploadResponse.statusText}`);
+        }
+        const videoUploadResult = await videoUploadResponse.json();
+        const uploadedVideoName = videoUploadResult.name;
+        logger.log(`Draft video uploaded successfully to ComfyUI: ${uploadedVideoName}`);
+
+        node.inputs.video = uploadedVideoName;
     }
     else {
         removeNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "Upscale | High High Res");
-        removeNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "Draft Video");
+        removeNodeByClassTypeAndTitle(workflow, c);
         findNodeByClassTypeAndTitle(workflow, "VHS_VideoCombine", "First Pass | Low Res").inputs.filename_prefix =
         `animator/draft/${startFrame}-${durationInFrames}`;
     }

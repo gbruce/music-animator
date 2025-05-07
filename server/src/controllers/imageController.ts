@@ -171,7 +171,7 @@ export const imageController = {
 
       const image = await prisma.image.findFirst({
         where: {
-          identifier,
+          id: identifier,
           userId
         }
       });

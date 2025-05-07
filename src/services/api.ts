@@ -363,7 +363,6 @@ export const imageApi = {
   
   getImageUrl: (identifier: string): string => {
     // Return the direct URL to the image using the identifier
-    console.log(`Creating image URL for identifier: ${identifier}`);
     return `${API_URL.replace('/api', '')}/images/${identifier}`;
   },
 
@@ -511,6 +510,30 @@ export const segmentApi = {
   },
   getSegmentsByProjectId: async (projectId: string) => {
     const response = await api.get(`/segments/projects/${projectId}/segments`);
+    const segments = response.data;
+    
+    // Fetch full image details for each segment
+    const segmentsWithImages = await Promise.all(segments.map(async (segment: any) => {
+      const images = await Promise.all(segment.images.map(async (img: any) => {
+        const imageDetails = await imageApi.getImageByIdentifier(img.imageId);
+        return imageDetails;
+      }));
+      return {
+        ...segment,
+        images
+      };
+    }));
+    
+    return segmentsWithImages;
+  },
+  updateSegment: async (segmentId: string, data: {
+    upscaleVideoId?: string;
+    draftVideoId?: string;
+    startFrame?: number;
+    duration?: number;
+    images?: { imageId: string; order?: number }[];
+  }) => {
+    const response = await api.patch(`/segments/${segmentId}`, data);
     return response.data;
   },
 }; 
