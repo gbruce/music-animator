@@ -134,7 +134,7 @@ const AnimsPanel: React.FC = () => {
       setVideoUrl(null);
       setVideoLoading(false);
       if (!selectedSegment) return;
-      const videoId = selectedSegment.upscaleVideoId || selectedSegment.draftVideoId;
+      const videoId = selectedSegment.draftVideoId;
       const videoObj = videos.find(v => v.identifier === videoId);
       if (videoObj) {
         setVideoLoading(true);
