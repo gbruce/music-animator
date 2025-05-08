@@ -2,6 +2,124 @@ import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useVideo } from '../contexts/VideoContext';
 import { useFolder } from '../contexts/FolderContext';
 import { FolderBrowser } from './FolderBrowser';
+import { videoApi } from '../services/api';
+
+// VideoPlayerModal component
+const VideoPlayerModal: React.FC<{ 
+  videoId: string; 
+  onClose: () => void;
+}> = ({ videoId, onClose }) => {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let revokedUrl: string | null = null;
+    const fetchVideo = async () => {
+      try {
+        const url = await videoApi.getVideoUrl(videoId);
+        setVideoUrl(url);
+        revokedUrl = url;
+      } catch (error) {
+        console.error('Error loading video:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchVideo();
+    return () => {
+      if (revokedUrl) URL.revokeObjectURL(revokedUrl);
+    };
+  }, [videoId]);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.9)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '24px'
+    }} onClick={onClose}>
+      <div style={{
+        position: 'relative',
+        maxWidth: '90vw',
+        maxHeight: '90vh',
+        width: 'auto',
+        height: 'auto'
+      }} onClick={e => e.stopPropagation()}>
+        {isLoading ? (
+          <div style={{ 
+            color: '#fff', 
+            padding: '32px',
+            background: '#1A202C',
+            borderRadius: '8px',
+            border: '1px solid #4A5568'
+          }}>
+            Loading video...
+          </div>
+        ) : videoUrl ? (
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            style={{
+              maxWidth: '100%',
+              maxHeight: '90vh',
+              borderRadius: '8px',
+              border: '1px solid #4A5568'
+            }}
+          />
+        ) : (
+          <div style={{ 
+            color: '#fff', 
+            padding: '32px',
+            background: '#1A202C',
+            borderRadius: '8px',
+            border: '1px solid #4A5568'
+          }}>
+            Failed to load video
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// AuthenticatedThumbnail component for video thumbnails
+const AuthenticatedThumbnail: React.FC<{ identifier: string; alt?: string; style?: React.CSSProperties }> = ({ identifier, alt, style }) => {
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    let revoked = false;
+    const fetchThumbnail = async () => {
+      const url = videoApi.getVideoThumbnailUrl(identifier);
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        if (!revoked) setSrc(objectUrl);
+      } else {
+        if (!revoked) setSrc(null);
+      }
+    };
+    fetchThumbnail();
+    return () => {
+      revoked = true;
+      if (src) URL.revokeObjectURL(src);
+    };
+  }, [identifier]);
+
+  if (!src) return <div style={{ ...style, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>No Thumbnail</div>;
+  return <img src={src} alt={alt} style={{ ...style, objectFit: 'cover', aspectRatio: '1/1' }} />;
+};
 
 const VideoDropTarget: React.FC<{ visible: boolean }> = ({ visible }) => {
   if (!visible) return null;
@@ -51,6 +169,7 @@ export const Videos: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVideos(currentFolder || undefined);
@@ -169,6 +288,12 @@ export const Videos: React.FC = () => {
       onDrop={handleDrop}
     >
       <VideoDropTarget visible={isDragging} />
+      {selectedVideoId && (
+        <VideoPlayerModal
+          videoId={selectedVideoId}
+          onClose={() => setSelectedVideoId(null)}
+        />
+      )}
       
       <div style={{ 
         display: 'flex', 
@@ -374,23 +499,26 @@ export const Videos: React.FC = () => {
                 <div
                   key={video.id}
                   className="video-card"
+                  onClick={() => setSelectedVideoId(video.identifier)}
                 >
                   <div style={{
                     position: 'relative',
-                    paddingTop: '56.25%',
+                    paddingTop: '100%',
                     backgroundColor: '#1A202C',
                     overflow: 'hidden'
                   }}>
-                    <div style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize: '24px',
-                      opacity: 0.3
-                    }}>
-                      🎥
-                    </div>
+                    <AuthenticatedThumbnail
+                      identifier={video.identifier}
+                      alt={video.filename}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
                     {downloadProgress[video.identifier] !== undefined && (
                       <div style={{
                         position: 'absolute',

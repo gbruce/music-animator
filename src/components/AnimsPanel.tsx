@@ -85,7 +85,7 @@ const AuthenticatedThumbnail: React.FC<{ identifier: string; alt?: string; style
   }, [identifier]);
 
   if (!src) return <div style={{ ...style, background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12 }}>No Thumbnail</div>;
-  return <img src={src} alt={alt} style={style} />;
+  return <img src={src} alt={alt} style={{ ...style, objectFit: 'cover', aspectRatio: '1/1' }} />;
 };
 
 const AnimsPanel: React.FC = () => {
