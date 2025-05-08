@@ -288,7 +288,7 @@ const AnimsPanel: React.FC = () => {
 
       logger.log('Starting animation generation...');
       // Create the one shot animation
-      const animation = await createAnimation(bpm, animationDuration);
+      const animation = await createAnimation(bpm, duration);
       logger.log(`Animation sequence created:  ${JSON.stringify(animation)}`);
 
       // Process each segment with ComfyUI
@@ -356,7 +356,7 @@ const AnimsPanel: React.FC = () => {
       setIsGenerating(false);
       setGenerationProgress(null);
     }
-  }, [sourceAnim, audioFile, setGeneratedAnims, animationDuration]);
+  }, [sourceAnim, audioFile, setGeneratedAnims, duration]);
 
   // Add handleUpscale function
   const handleUpscale = useCallback(async () => {
