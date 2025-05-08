@@ -15,7 +15,7 @@ import { createLogger } from '../utils/logger';
 import { timelineStyles as styles } from './styles/TimelineStyles';
 import { guess as guessBPM } from 'web-audio-beat-detector';
 import { TimerOutlined as BPMIcon } from '@mui/icons-material';
-import { imageApi, videoApi, Image, segmentApi } from '../services/api';
+import { imageApi, videoApi, Image, segmentApi, Video } from '../services/api';
 import { createOneShotAnimation, AnimationConfig, OneShotAnimation, CreateOneShotAnimationParams } from '../types/oneShotAnimation';
 import { runAnimationWorkflow } from '../comfy/utils';
 import { ArrowUpward as ArrowUpwardIcon, Delete as DeleteIcon } from '@mui/icons-material';
@@ -88,6 +88,149 @@ const AuthenticatedThumbnail: React.FC<{ identifier: string; alt?: string; style
   return <img src={src} alt={alt} style={{ ...style, objectFit: 'cover', aspectRatio: '1/1' }} />;
 };
 
+// VideoSelectorModal component
+const VideoSelectorModal: React.FC<{
+  onClose: () => void;
+  onSelect: (video: Video) => void;
+}> = ({ onClose, onSelect }) => {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+
+  useEffect(() => {
+    const fetchVideos = async () => {
+      try {
+        const videoList = await videoApi.list();
+        setVideos(videoList);
+      } catch (error) {
+        console.error('Error fetching videos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVideos();
+  }, []);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.9)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '24px'
+    }} onClick={onClose}>
+      <div style={{
+        background: '#1A202C',
+        borderRadius: '8px',
+        border: '1px solid #4A5568',
+        maxWidth: '800px',
+        width: '100%',
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column'
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '24px 24px 0 24px' }}>
+          <h2 style={{ color: '#E2E8F0', marginBottom: '16px' }}>Select Flow Video</h2>
+          
+          {loading ? (
+            <div style={{ color: '#E2E8F0', padding: '16px' }}>Loading videos...</div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px',
+              overflowY: 'auto',
+              maxHeight: 'calc(90vh - 180px)' // Account for header and footer
+            }}>
+              {videos.map((video) => (
+                <div
+                  key={video.id}
+                  style={{
+                    border: selectedVideo?.id === video.id ? '2px solid #4299E1' : '1px solid #4A5568',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    background: selectedVideo?.id === video.id ? '#2D3748' : '#1A202C',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setSelectedVideo(video)}
+                >
+                  <AuthenticatedThumbnail
+                    identifier={video.identifier}
+                    alt={video.filename}
+                    style={{
+                      width: '100%',
+                      aspectRatio: '1/1',
+                      borderRadius: '4px',
+                      marginBottom: '8px'
+                    }}
+                  />
+                  <div style={{
+                    color: '#E2E8F0',
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {video.filename}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '12px',
+          padding: '16px 24px',
+          background: '#1A202C',
+          borderTop: '1px solid #4A5568',
+          borderBottomLeftRadius: '8px',
+          borderBottomRightRadius: '8px'
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '8px 16px',
+              background: '#2D3748',
+              color: '#E2E8F0',
+              border: '1px solid #4A5568',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => selectedVideo && onSelect(selectedVideo)}
+            disabled={!selectedVideo}
+            style={{
+              padding: '8px 16px',
+              background: selectedVideo ? '#4299E1' : '#2D3748',
+              color: '#E2E8F0',
+              border: '1px solid #4A5568',
+              borderRadius: '4px',
+              cursor: selectedVideo ? 'pointer' : 'not-allowed',
+              opacity: selectedVideo ? 1 : 0.5
+            }}
+          >
+            Select
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AnimsPanel: React.FC = () => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -104,6 +247,8 @@ const AnimsPanel: React.FC = () => {
   const [videoLoading, setVideoLoading] = useState(false);
   const [upscaleUrl, setUpscaleUrl] = useState<string | null>(null);
   const [upscaleLoading, setUpscaleLoading] = useState(false);
+  const [showVideoSelector, setShowVideoSelector] = useState(false);
+  const [flowVideo, setFlowVideo] = useState<Video | null>(null);
   
   // Use context for managing state
   const { 
@@ -303,7 +448,9 @@ const AnimsPanel: React.FC = () => {
             audioFile,
             (max, value) => {
               setGenerationProgress({ max, value });
-            }
+            },
+            undefined,
+            flowVideo?.identifier,
           );
 
           // Upload the returned video and image blobs to the API
@@ -372,7 +519,8 @@ const AnimsPanel: React.FC = () => {
           (max, value) => {
             setGenerationProgress({ max, value });
           },
-          selectedSegment.draftVideoId
+          selectedSegment.draftVideoId,
+          flowVideo?.identifier,
         );
 
         if (response && response.videoUrl && response.workflowUrl && response.promptId) {
@@ -448,20 +596,70 @@ const AnimsPanel: React.FC = () => {
           )}
         </div>
         {/* Quick Menu */}
-        <div style={{ flex: 1, minWidth: 320, maxWidth: 400, display: 'flex', alignItems: 'center', gap: 16, background: '#181818', padding: 16, overflow: 'hidden', boxSizing: 'border-box', border: '1px solid #444', fontSize: '14pt' }}>
+        <div style={{ 
+          flex: 1, 
+          minWidth: 320, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 16, 
+          background: '#181818', 
+          padding: '16px 24px', 
+          overflow: 'hidden', 
+          boxSizing: 'border-box', 
+          border: '1px solid #444', 
+          fontSize: '14pt' 
+        }}>
           <Typography variant="h6" style={{ color: '#fff', marginRight: 16 }}>Quick Menu</Typography>
-          <TextField
-            label="Duration"
-            type="number"
-            size="small"
-            value={duration}
-            onChange={e => setDuration(Number(e.target.value))}
-            inputProps={{ min: 1 }}
-            sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
-          />
-          <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }} disabled={!audioFile}>Generate</Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <TextField
+              label="Duration"
+              type="number"
+              size="small"
+              value={duration}
+              onChange={e => setDuration(Number(e.target.value))}
+              inputProps={{ min: 1 }}
+              sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
+            />
+            <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }} disabled={!audioFile}>Generate</Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setShowVideoSelector(true)}
+                sx={{ 
+                  color: '#fff', 
+                  borderColor: '#444',
+                  '&:hover': { borderColor: '#666' }
+                }}
+              >
+                Select Flow Video
+              </Button>
+              {flowVideo && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AuthenticatedThumbnail
+                    identifier={flowVideo.identifier}
+                    alt={flowVideo.filename}
+                    style={{ width: 40, height: 40, borderRadius: 4, border: '1px solid #444' }}
+                  />
+                  <Typography variant="body2" style={{ color: '#aaa', fontSize: '12px' }}>
+                    {flowVideo.filename}
+                  </Typography>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {showVideoSelector && (
+        <VideoSelectorModal
+          onClose={() => setShowVideoSelector(false)}
+          onSelect={(video) => {
+            setFlowVideo(video);
+            setShowVideoSelector(false);
+          }}
+        />
+      )}
+
       {/* Main Content: Segments List & Preview */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden', boxSizing: 'border-box', background: '#121212' }}>
         {/* Left: Segments List */}

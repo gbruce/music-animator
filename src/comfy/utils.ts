@@ -30,6 +30,7 @@ export async function runAnimationWorkflow(
     audio: File,
     onProgress?: (max: number, value: number) => void,
     draftVideoId?: string,
+    flowVideoId?: string,
 ) {
     logger.log(`Running animation workflow`);
 
@@ -86,6 +87,29 @@ export async function runAnimationWorkflow(
     logger.log(`Audio uploaded successfully to ComfyUI: ${uploadedAudioName}`);
 
     findNodeByClassTypeAndTitle(workflow, "VHS_LoadAudioUpload", "Load Audio (Upload)").inputs.audio = uploadedAudioName;
+
+    // if a flow video is provided, update the workflow
+    if (flowVideoId) {
+        const flowVideoUrl = await videoApi.getVideoUrl(flowVideoId);
+        const flowVideoBlob = await fetch(flowVideoUrl).then(r => r.blob());
+        const flowVideoFormData = new FormData();
+        flowVideoFormData.append('image', new File([flowVideoBlob], 'flow.mp4', { type: 'video/mp4' }), "flow.mp4");
+     
+        const videoUploadResponse = await comfyClient.fetchApi('/api/upload/image', {
+          method: 'POST',
+          body: flowVideoFormData,
+        });
+        if (!videoUploadResponse.ok) {
+            throw new Error(`Failed to upload flow video: ${videoUploadResponse.statusText}`);
+        }
+        const videoUploadResult = await videoUploadResponse.json();
+        const uploadedVideoName = videoUploadResult.name;
+        logger.log(`Flow video uploaded successfully to ComfyUI: ${uploadedVideoName}`);
+
+        const node = findNodeByClassTypeAndTitle(workflow, "VHS_LoadVideo", "ControlNet Video");
+        node.inputs.video = uploadedVideoName;
+    }
+
 
      // if a draft video is provided, we need to upscale
     if (draftVideoId) {
