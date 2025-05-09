@@ -249,6 +249,10 @@ const AnimsPanel: React.FC = () => {
   const [upscaleLoading, setUpscaleLoading] = useState(false);
   const [showVideoSelector, setShowVideoSelector] = useState(false);
   const [flowVideo, setFlowVideo] = useState<Video | null>(null);
+  const [segmentCount, setSegmentCount] = useState<number>(1);
+  const dragRef = useRef<HTMLDivElement | null>(null);
+  const dragStartX = useRef<number | null>(null);
+  const dragStartValue = useRef<number>(1);
   
   // Use context for managing state
   const { 
@@ -553,6 +557,32 @@ const AnimsPanel: React.FC = () => {
     }
   }, [selectedSegment, audioFile, currentProject?.id, videos]);
 
+  // Drag handlers for segment number picker
+  const handleSegmentDragMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Only left mouse button
+    dragStartX.current = e.clientX;
+    dragStartValue.current = segmentCount;
+    document.body.style.userSelect = 'none';
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (dragStartX.current !== null) {
+        const dx = ev.clientX - dragStartX.current;
+        const delta = Math.round(dx / 20);
+        let newValue = dragStartValue.current + delta;
+        newValue = Math.max(1, Math.min(20, newValue));
+        setSegmentCount(newValue);
+      }
+    };
+    const handleMouseUp = () => {
+      dragStartX.current = null;
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 182px)', maxHeight: 'calc(100vh - 182px)', background: '#121212', overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Top: Audio Drop Target & Quick Menu */}
@@ -603,23 +633,98 @@ const AnimsPanel: React.FC = () => {
           flexDirection: 'column', 
           gap: 16, 
           background: '#181818', 
-          padding: '16px 24px', 
+          padding: '8px 24px 16px 24px', 
           overflow: 'hidden', 
           boxSizing: 'border-box', 
           border: '1px solid #444', 
           fontSize: '14pt' 
         }}>
-          <Typography variant="h6" style={{ color: '#fff', marginRight: 16 }}>Quick Menu</Typography>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <TextField
-              label="Duration"
-              type="number"
-              size="small"
-              value={duration}
-              onChange={e => setDuration(Number(e.target.value))}
-              inputProps={{ min: 1 }}
-              sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ color: '#aaa', fontSize: 12, marginLeft: 2, marginBottom: 2, fontFamily: 'Roboto, Arial, sans-serif' }}>Segment</span>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: '#222',
+                border: '1px solid #444',
+                borderRadius: 6,
+                height: 36,
+                minWidth: 90,
+                maxWidth: 110,
+                fontSize: 16,
+                overflow: 'hidden',
+              }}>
+                <button
+                  onClick={() => setSegmentCount(v => Math.max(1, v - 1))}
+                  style={{
+                    width: 32,
+                    height: '100%',
+                    background: 'none',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    backgroundColor: '#181818',
+                    transition: 'background 0.2s',
+                  }}
+                  aria-label="decrement"
+                  tabIndex={0}
+                >
+                  -
+                </button>
+                <div
+                  ref={dragRef}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    color: '#fff',
+                    background: 'none',
+                    fontWeight: 500,
+                    fontSize: 16,
+                    userSelect: 'none',
+                    letterSpacing: 1,
+                    cursor: 'ew-resize',
+                  }}
+                  onMouseDown={handleSegmentDragMouseDown}
+                  title="Drag left/right to change"
+                >
+                  {segmentCount}
+                </div>
+                <button
+                  onClick={() => setSegmentCount(v => Math.min(20, v + 1))}
+                  style={{
+                    width: 32,
+                    height: '100%',
+                    background: 'none',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: 20,
+                    cursor: 'pointer',
+                    outline: 'none',
+                    backgroundColor: '#181818',
+                    transition: 'background 0.2s',
+                  }}
+                  aria-label="increment"
+                  tabIndex={0}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            {/* Duration with custom label for alignment */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ color: '#aaa', fontSize: 12, marginLeft: 2, marginBottom: 2, fontFamily: 'Roboto, Arial, sans-serif' }}>Duration</span>
+              <TextField
+                // label="Duration"
+                type="number"
+                size="small"
+                value={duration}
+                onChange={e => setDuration(Number(e.target.value))}
+                inputProps={{ min: 1 }}
+                sx={{ width: 100, background: '#222', borderRadius: 1, input: { color: '#fff' }, label: { color: '#aaa' } }}
+              />
+            </div>
             <Button variant="contained" color="primary" onClick={handleGenerateAnimation} sx={{ minWidth: 100 }} disabled={!audioFile}>Generate</Button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
               <Button
